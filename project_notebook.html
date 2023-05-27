@@ -1,0 +1,3197 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.340">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Predict Bike Sharing Demand with AutoGluon Template</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="project_notebook_files/libs/clipboard/clipboard.min.js"></script>
+<script src="project_notebook_files/libs/quarto-html/quarto.js"></script>
+<script src="project_notebook_files/libs/quarto-html/popper.min.js"></script>
+<script src="project_notebook_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="project_notebook_files/libs/quarto-html/anchor.min.js"></script>
+<link href="project_notebook_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="project_notebook_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="project_notebook_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="project_notebook_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="project_notebook_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Predict Bike Sharing Demand with AutoGluon Template</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="notes" class="level1">
+<h1>Notes:</h1>
+<p>I ran the notebook in Google Colab but forgot to download the images and have to rerun again. Because of that, the actual value of submissions displayed in the outputs varied from the first time. The images also died.</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create the .kaggle directory and an empty kaggle.json file</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>mkdir <span class="op">-</span>p <span class="op">/</span>root<span class="op">/</span>.kaggle</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>touch <span class="op">/</span>root<span class="op">/</span>.kaggle<span class="op">/</span>kaggle.json</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>chmod <span class="dv">600</span> <span class="op">/</span>root<span class="op">/</span>.kaggle<span class="op">/</span>kaggle.json</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fill in your user name and key from creating the kaggle account and API token file</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>kaggle_username <span class="op">=</span> <span class="st">""</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>kaggle_key <span class="op">=</span> <span class="st">""</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Save API token the kaggle.json file</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"/root/.kaggle/kaggle.json"</span>, <span class="st">"w"</span>) <span class="im">as</span> f:</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    f.write(json.dumps({<span class="st">"username"</span>: kaggle_username, <span class="st">"key"</span>: kaggle_key}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="7132a643-8811-451a-88f9-a827a28d5243" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submissions <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fileName                     date                 description                             status    publicScore  privateScore  
+---------------------------  -------------------  --------------------------------------  --------  -----------  ------------  
+submission_new_hpo_1.csv     2023-05-26 08:41:56  new features with increased time limit  complete  0.67834      0.67834       
+submission_new_hpo.csv       2023-05-26 08:19:14  new features with hyperparameters       complete  0.61537      0.61537       
+submission_new_features.csv  2023-05-26 08:06:23  new features                            complete  0.63415      0.63415       
+submission.csv               2023-05-26 07:53:31  first raw submission                    complete  1.81590      1.81590       
+submission.csv               2023-05-26 06:48:23  gradient boosting with GridSearchCV     complete  0.38863      0.38863       
+submission_new_hpo_1.csv     2023-05-26 06:27:38  new features with increased time limit  complete  0.67070      0.67070       
+submission_new_hpo.csv       2023-05-26 06:02:10  new features with hyperparameters       complete  0.64431      0.64431       
+submission_new_features.csv  2023-05-26 05:35:50  new features                            complete  0.63239      0.63239       
+submission.csv               2023-05-26 05:09:08  first raw submission                    complete  1.78725      1.78725       </code></pre>
+</div>
+</div>
+<section id="project-predict-bike-sharing-demand-with-autogluon" class="level2">
+<h2 class="anchored" data-anchor-id="project-predict-bike-sharing-demand-with-autogluon">Project: Predict Bike Sharing Demand with AutoGluon</h2>
+<p>This notebook is a template with each step that you need to complete for the project.</p>
+<p>Please fill in your code where there are explicit <code>?</code> markers in the notebook. You are welcome to add more cells and code as you see fit.</p>
+<p>Once you have completed all the code implementations, please export your notebook as a HTML file so the reviews can view your code. Make sure you have all outputs correctly outputted.</p>
+<p><code>File-&gt; Export Notebook As... -&gt; Export Notebook as HTML</code></p>
+<p>There is a writeup to complete as well after all code implememtation is done. Please answer all questions and attach the necessary tables and charts. You can complete the writeup in either markdown or PDF.</p>
+<p>Completing the code template and writeup template will cover all of the rubric points for this project.</p>
+<p>The rubric contains “Stand Out Suggestions” for enhancing the project beyond the minimum requirements. The stand out suggestions are optional. If you decide to pursue the “stand out suggestions”, you can include the code in this notebook and also discuss the results in the writeup file.</p>
+</section>
+<section id="step-1-create-an-account-with-kaggle" class="level2">
+<h2 class="anchored" data-anchor-id="step-1-create-an-account-with-kaggle">Step 1: Create an account with Kaggle</h2>
+<section id="create-kaggle-account-and-download-api-key" class="level3">
+<h3 class="anchored" data-anchor-id="create-kaggle-account-and-download-api-key">Create Kaggle Account and download API key</h3>
+<p>Below is example of steps to get the API username and key. Each student will have their own username and key.</p>
+<ol type="1">
+<li>Open account settings. <img src="attachment:kaggle1.png" class="img-fluid" alt="kaggle1.png"> <img src="attachment:kaggle2.png" class="img-fluid" alt="kaggle2.png"></li>
+<li>Scroll down to API and click Create New API Token. <img src="attachment:kaggle3.png" class="img-fluid" alt="kaggle3.png"> <img src="attachment:kaggle4.png" class="img-fluid" alt="kaggle4.png"></li>
+<li>Open up <code>kaggle.json</code> and use the username and key. <img src="attachment:kaggle5.png" class="img-fluid" alt="kaggle5.png"></li>
+</ol>
+</section>
+</section>
+<section id="step-2-download-the-kaggle-dataset-using-the-kaggle-python-library" class="level2">
+<h2 class="anchored" data-anchor-id="step-2-download-the-kaggle-dataset-using-the-kaggle-python-library">Step 2: Download the Kaggle dataset using the kaggle python library</h2>
+<section id="open-up-sagemaker-studio-and-use-starter-template" class="level3">
+<h3 class="anchored" data-anchor-id="open-up-sagemaker-studio-and-use-starter-template">Open up Sagemaker Studio and use starter template</h3>
+<ol type="1">
+<li>Notebook should be using a <code>ml.t3.medium</code> instance (2 vCPU + 4 GiB)</li>
+<li>Notebook should be using kernal: <code>Python 3 (MXNet 1.8 Python 3.7 CPU Optimized)</code></li>
+</ol>
+</section>
+<section id="install-packages" class="level3">
+<h3 class="anchored" data-anchor-id="install-packages">Install packages</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>capture</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install <span class="op">-</span>U pip</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install <span class="op">-</span>U setuptools wheel</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install <span class="op">-</span>U <span class="st">"mxnet&lt;2.0.0"</span> bokeh<span class="op">==</span><span class="fl">2.0.1</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install autogluon <span class="op">--</span>no<span class="op">-</span>cache<span class="op">-</span><span class="bu">dir</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Without --no-cache-dir, smaller aws instances may have trouble installing</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="setup-kaggle-api-key" class="level3">
+<h3 class="anchored" data-anchor-id="setup-kaggle-api-key">Setup Kaggle API Key</h3>
+</section>
+<section id="download-and-explore-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="download-and-explore-dataset">Download and explore dataset</h3>
+</section>
+<section id="go-to-the-bike-sharing-demand-competition-and-agree-to-the-terms" class="level3">
+<h3 class="anchored" data-anchor-id="go-to-the-bike-sharing-demand-competition-and-agree-to-the-terms">Go to the bike sharing demand competition and agree to the terms</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="attachment:kaggle6.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">kaggle6.png</figcaption>
+</figure>
+</div>
+<div class="cell" data-outputid="2ac1ade9-4939-4181-fbf3-a63ade5d8fb0">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the dataset, it will be in a .zip file so you'll need to unzip it as well.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions download <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># If you already downloaded it you can use the -o command to overwrite the file</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>unzip <span class="op">-</span>o bike<span class="op">-</span>sharing<span class="op">-</span>demand.<span class="bu">zip</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>bike-sharing-demand.zip: Skipping, found more recently modified local copy (use --force to force download)
+Archive:  bike-sharing-demand.zip
+  inflating: sampleSubmission.csv    
+  inflating: test.csv                
+  inflating: train.csv               </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> autogluon.tabular <span class="im">import</span> TabularPredictor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="b9109494-094d-4307-8e6f-bbe783f67bd0">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the train dataset in pandas by reading the csv</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Set the parsing of the datetime column so you can use some of the `dt` features in pandas later</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> pd.read_csv(<span class="st">'train.csv'</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>train.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="61">
+
+  <div id="df-95cb5310-a01f-457e-bf82-45be9a02f1dc">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">datetime</th>
+<th data-quarto-table-cell-role="th">season</th>
+<th data-quarto-table-cell-role="th">holiday</th>
+<th data-quarto-table-cell-role="th">workingday</th>
+<th data-quarto-table-cell-role="th">weather</th>
+<th data-quarto-table-cell-role="th">temp</th>
+<th data-quarto-table-cell-role="th">atemp</th>
+<th data-quarto-table-cell-role="th">humidity</th>
+<th data-quarto-table-cell-role="th">windspeed</th>
+<th data-quarto-table-cell-role="th">casual</th>
+<th data-quarto-table-cell-role="th">registered</th>
+<th data-quarto-table-cell-role="th">count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2011-01-01 00:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>81</td>
+<td>0.0</td>
+<td>3</td>
+<td>13</td>
+<td>16</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2011-01-01 01:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.02</td>
+<td>13.635</td>
+<td>80</td>
+<td>0.0</td>
+<td>8</td>
+<td>32</td>
+<td>40</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2011-01-01 02:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.02</td>
+<td>13.635</td>
+<td>80</td>
+<td>0.0</td>
+<td>5</td>
+<td>27</td>
+<td>32</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>2011-01-01 03:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>75</td>
+<td>0.0</td>
+<td>3</td>
+<td>10</td>
+<td>13</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>2011-01-01 04:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>75</td>
+<td>0.0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-95cb5310-a01f-457e-bf82-45be9a02f1dc')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-95cb5310-a01f-457e-bf82-45be9a02f1dc button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-95cb5310-a01f-457e-bf82-45be9a02f1dc');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="d5fe6d36-ff4b-4dd2-fc94-8e83b90152d3">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>train.loc[:,<span class="st">'datetime'</span>] <span class="op">=</span> pd.to_datetime(train.loc[:,<span class="st">'datetime'</span>])</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>train.loc[:,<span class="st">'season'</span>:<span class="st">'weather'</span>] <span class="op">=</span> train.loc[:,<span class="st">'season'</span>:<span class="st">'weather'</span>].astype(<span class="st">'category'</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>train.info()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 10886 entries, 0 to 10885
+Data columns (total 12 columns):
+ #   Column      Non-Null Count  Dtype         
+---  ------      --------------  -----         
+ 0   datetime    10886 non-null  datetime64[ns]
+ 1   season      10886 non-null  category      
+ 2   holiday     10886 non-null  category      
+ 3   workingday  10886 non-null  category      
+ 4   weather     10886 non-null  category      
+ 5   temp        10886 non-null  float64       
+ 6   atemp       10886 non-null  float64       
+ 7   humidity    10886 non-null  int64         
+ 8   windspeed   10886 non-null  float64       
+ 9   casual      10886 non-null  int64         
+ 10  registered  10886 non-null  int64         
+ 11  count       10886 non-null  int64         
+dtypes: category(4), datetime64[ns](1), float64(3), int64(4)
+memory usage: 723.7 KB</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>DeprecationWarning: In a future version, `df.iloc[:, i] = newvals` will attempt to set the values inplace instead of always setting a new array. To retain the old behavior, use either `df[df.columns[i]] = newvals` or, if columns are non-unique, `df.isetitem(i, newvals)`
+  train.loc[:,'datetime'] = pd.to_datetime(train.loc[:,'datetime'])</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="6c5ad5b2-9c24-46a7-b40a-c1c9fbb46816">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simple output of the train dataset to view some of the min/max/varition of the dataset features.</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>train.describe()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="63">
+
+  <div id="df-483c83c3-dfb4-4f92-86bd-081e0d60d569">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">temp</th>
+<th data-quarto-table-cell-role="th">atemp</th>
+<th data-quarto-table-cell-role="th">humidity</th>
+<th data-quarto-table-cell-role="th">windspeed</th>
+<th data-quarto-table-cell-role="th">casual</th>
+<th data-quarto-table-cell-role="th">registered</th>
+<th data-quarto-table-cell-role="th">count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">count</td>
+<td>10886.00000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">mean</td>
+<td>20.23086</td>
+<td>23.655084</td>
+<td>61.886460</td>
+<td>12.799395</td>
+<td>36.021955</td>
+<td>155.552177</td>
+<td>191.574132</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">std</td>
+<td>7.79159</td>
+<td>8.474601</td>
+<td>19.245033</td>
+<td>8.164537</td>
+<td>49.960477</td>
+<td>151.039033</td>
+<td>181.144454</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">min</td>
+<td>0.82000</td>
+<td>0.760000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>1.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">25%</td>
+<td>13.94000</td>
+<td>16.665000</td>
+<td>47.000000</td>
+<td>7.001500</td>
+<td>4.000000</td>
+<td>36.000000</td>
+<td>42.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">50%</td>
+<td>20.50000</td>
+<td>24.240000</td>
+<td>62.000000</td>
+<td>12.998000</td>
+<td>17.000000</td>
+<td>118.000000</td>
+<td>145.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">75%</td>
+<td>26.24000</td>
+<td>31.060000</td>
+<td>77.000000</td>
+<td>16.997900</td>
+<td>49.000000</td>
+<td>222.000000</td>
+<td>284.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">max</td>
+<td>41.00000</td>
+<td>45.455000</td>
+<td>100.000000</td>
+<td>56.996900</td>
+<td>367.000000</td>
+<td>886.000000</td>
+<td>977.000000</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-483c83c3-dfb4-4f92-86bd-081e0d60d569')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-483c83c3-dfb4-4f92-86bd-081e0d60d569 button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-483c83c3-dfb4-4f92-86bd-081e0d60d569');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="930b427a-34e6-4455-a855-42748a739089">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the test pandas dataframe in pandas by reading the csv, remember to parse the datetime!</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> pd.read_csv(<span class="st">'test.csv'</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>test.loc[:,<span class="st">'datetime'</span>] <span class="op">=</span> pd.to_datetime(test.loc[:,<span class="st">'datetime'</span>])</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>test.loc[:,<span class="st">'season'</span>:<span class="st">'weather'</span>] <span class="op">=</span> test.loc[:,<span class="st">'season'</span>:<span class="st">'weather'</span>].astype(<span class="st">'category'</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>test.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>DeprecationWarning: In a future version, `df.iloc[:, i] = newvals` will attempt to set the values inplace instead of always setting a new array. To retain the old behavior, use either `df[df.columns[i]] = newvals` or, if columns are non-unique, `df.isetitem(i, newvals)`
+  test.loc[:,'datetime'] = pd.to_datetime(test.loc[:,'datetime'])</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="64">
+
+  <div id="df-e6408fbc-ecd8-472d-a7f0-5045f92b09f7">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">datetime</th>
+<th data-quarto-table-cell-role="th">season</th>
+<th data-quarto-table-cell-role="th">holiday</th>
+<th data-quarto-table-cell-role="th">workingday</th>
+<th data-quarto-table-cell-role="th">weather</th>
+<th data-quarto-table-cell-role="th">temp</th>
+<th data-quarto-table-cell-role="th">atemp</th>
+<th data-quarto-table-cell-role="th">humidity</th>
+<th data-quarto-table-cell-role="th">windspeed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2011-01-20 00:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>11.365</td>
+<td>56</td>
+<td>26.0027</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2011-01-20 01:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>13.635</td>
+<td>56</td>
+<td>0.0000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2011-01-20 02:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>13.635</td>
+<td>56</td>
+<td>0.0000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>2011-01-20 03:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>12.880</td>
+<td>56</td>
+<td>11.0014</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>2011-01-20 04:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>12.880</td>
+<td>56</td>
+<td>11.0014</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-e6408fbc-ecd8-472d-a7f0-5045f92b09f7')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-e6408fbc-ecd8-472d-a7f0-5045f92b09f7 button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-e6408fbc-ecd8-472d-a7f0-5045f92b09f7');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="10049e18-15cd-4155-b8b3-6748a9d72f0d">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>test.info()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 6493 entries, 0 to 6492
+Data columns (total 9 columns):
+ #   Column      Non-Null Count  Dtype         
+---  ------      --------------  -----         
+ 0   datetime    6493 non-null   datetime64[ns]
+ 1   season      6493 non-null   category      
+ 2   holiday     6493 non-null   category      
+ 3   workingday  6493 non-null   category      
+ 4   weather     6493 non-null   category      
+ 5   temp        6493 non-null   float64       
+ 6   atemp       6493 non-null   float64       
+ 7   humidity    6493 non-null   int64         
+ 8   windspeed   6493 non-null   float64       
+dtypes: category(4), datetime64[ns](1), float64(3), int64(1)
+memory usage: 279.8 KB</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="508e2a20-5784-4bdd-bbcc-fc28840b0c41">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Same thing as train and test dataset</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>submission <span class="op">=</span> pd.read_csv(<span class="st">'sampleSubmission.csv'</span>, parse_dates<span class="op">=</span>[<span class="st">'datetime'</span>])</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>submission.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="66">
+
+  <div id="df-7c09439d-fdf7-4dc8-af5d-b5b1033351ad">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">datetime</th>
+<th data-quarto-table-cell-role="th">count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2011-01-20 00:00:00</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2011-01-20 01:00:00</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2011-01-20 02:00:00</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>2011-01-20 03:00:00</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>2011-01-20 04:00:00</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-7c09439d-fdf7-4dc8-af5d-b5b1033351ad')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-7c09439d-fdf7-4dc8-af5d-b5b1033351ad button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-7c09439d-fdf7-4dc8-af5d-b5b1033351ad');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="eb135bfd-3310-4476-c4c8-2f050d4b0046">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>submission.info()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 6493 entries, 0 to 6492
+Data columns (total 2 columns):
+ #   Column    Non-Null Count  Dtype         
+---  ------    --------------  -----         
+ 0   datetime  6493 non-null   datetime64[ns]
+ 1   count     6493 non-null   int64         
+dtypes: datetime64[ns](1), int64(1)
+memory usage: 101.6 KB</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="step-3-train-a-model-using-autogluons-tabular-prediction" class="level2">
+<h2 class="anchored" data-anchor-id="step-3-train-a-model-using-autogluons-tabular-prediction">Step 3: Train a model using AutoGluon’s Tabular Prediction</h2>
+<p>Requirements: * We are prediting <code>count</code>, so it is the label we are setting. * Ignore <code>casual</code> and <code>registered</code> columns as they are also not present in the test dataset. * Use the <code>root_mean_squared_error</code> as the metric to use for evaluation. * Set a time limit of 10 minutes (600 seconds). * Use the preset <code>best_quality</code> to focus on creating the best model.</p>
+<div class="cell" data-outputid="41a2a920-df06-459c-b30b-ea65300b869e">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>predictor <span class="op">=</span> TabularPredictor(label<span class="op">=</span><span class="st">'count'</span>,</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>                             problem_type<span class="op">=</span><span class="st">'regression'</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                             learner_kwargs <span class="op">=</span> {<span class="st">'ignored_columns'</span>: [<span class="st">'casual'</span>, <span class="st">'registered'</span>]}</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                             ).fit(train_data<span class="op">=</span>train, time_limit<span class="op">=</span><span class="dv">600</span>, presets<span class="op">=</span><span class="st">"best_quality"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No path specified. Models will be saved in: "AutogluonModels/ag-20230526_074151/"
+Presets specified: ['best_quality']
+Stack configuration (auto_stack=True): num_stack_levels=1, num_bag_folds=8, num_bag_sets=20
+Beginning AutoGluon training ... Time limit = 600s
+AutoGluon will save models to "AutogluonModels/ag-20230526_074151/"
+AutoGluon Version:  0.7.0
+Python Version:     3.10.11
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP Sat Apr 29 09:15:28 UTC 2023
+Train Data Rows:    10886
+Train Data Columns: 11
+Label Column: count
+Preprocessing data ...
+Using Feature Generators to preprocess the data ...
+Dropping user-specified ignored columns: ['casual', 'registered']
+Fitting AutoMLPipelineFeatureGenerator...
+    Available Memory:                    11701.54 MB
+    Train Data (Original)  Memory Usage: 0.48 MB (0.0% of available memory)
+    Inferring data type of each feature based on column values. Set feature_metadata_in to manually specify special dtypes of the features.
+    Stage 1 Generators:
+        Fitting AsTypeFeatureGenerator...
+            Note: Converting 2 features to boolean dtype as they only contain 2 unique values.
+    Stage 2 Generators:
+        Fitting FillNaFeatureGenerator...
+    Stage 3 Generators:
+        Fitting IdentityFeatureGenerator...
+        Fitting CategoryFeatureGenerator...
+            Fitting CategoryMemoryMinimizeFeatureGenerator...
+        Fitting DatetimeFeatureGenerator...
+    Stage 4 Generators:
+        Fitting DropUniqueFeatureGenerator...
+    Types of features in original data (raw dtype, special dtypes):
+        ('category', []) : 4 | ['season', 'holiday', 'workingday', 'weather']
+        ('datetime', []) : 1 | ['datetime']
+        ('float', [])    : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])      : 1 | ['humidity']
+    Types of features in processed data (raw dtype, special dtypes):
+        ('category', [])             : 2 | ['season', 'weather']
+        ('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])                  : 1 | ['humidity']
+        ('int', ['bool'])            : 2 | ['holiday', 'workingday']
+        ('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+    0.2s = Fit runtime
+    9 features in original data used to generate 13 features in processed data.
+    Train Data (Processed) Memory Usage: 0.83 MB (0.0% of available memory)
+Data preprocessing and feature engineering runtime = 0.21s ...
+AutoGluon will gauge predictive performance using evaluation metric: 'root_mean_squared_error'
+    This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+    To change this, specify the eval_metric parameter of Predictor()
+AutoGluon will fit 2 stack levels (L1 to L2) ...
+Fitting 11 L1 models ...
+Fitting model: KNeighborsUnif_BAG_L1 ... Training model for up to 399.76s of the 599.78s of remaining time.
+    -101.5462    = Validation score   (-root_mean_squared_error)
+    0.04s    = Training   runtime
+    0.04s    = Validation runtime
+Fitting model: KNeighborsDist_BAG_L1 ... Training model for up to 399.62s of the 599.65s of remaining time.
+    -84.1251     = Validation score   (-root_mean_squared_error)
+    0.04s    = Training   runtime
+    0.04s    = Validation runtime
+Fitting model: LightGBMXT_BAG_L1 ... Training model for up to 399.5s of the 599.53s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -131.1592    = Validation score   (-root_mean_squared_error)
+    186.89s  = Training   runtime
+    21.42s   = Validation runtime
+Fitting model: LightGBM_BAG_L1 ... Training model for up to 201.37s of the 401.4s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -130.675     = Validation score   (-root_mean_squared_error)
+    53.29s   = Training   runtime
+    5.5s     = Validation runtime
+Fitting model: RandomForestMSE_BAG_L1 ... Training model for up to 142.37s of the 342.4s of remaining time.
+    -116.6254    = Validation score   (-root_mean_squared_error)
+    20.29s   = Training   runtime
+    0.64s    = Validation runtime
+Fitting model: CatBoost_BAG_L1 ... Training model for up to 120.19s of the 320.21s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -133.7724    = Validation score   (-root_mean_squared_error)
+    120.41s  = Training   runtime
+    0.25s    = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L2 ... Training model for up to 360.0s of the 190.92s of remaining time.
+    -84.1251     = Validation score   (-root_mean_squared_error)
+    0.63s    = Training   runtime
+    0.0s     = Validation runtime
+Fitting 9 L2 models ...
+Fitting model: LightGBMXT_BAG_L2 ... Training model for up to 190.26s of the 190.24s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -61.0722     = Validation score   (-root_mean_squared_error)
+    82.9s    = Training   runtime
+    10.67s   = Validation runtime
+Fitting model: LightGBM_BAG_L2 ... Training model for up to 97.33s of the 97.31s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -54.7932     = Validation score   (-root_mean_squared_error)
+    36.39s   = Training   runtime
+    0.42s    = Validation runtime
+Fitting model: RandomForestMSE_BAG_L2 ... Training model for up to 52.36s of the 52.34s of remaining time.
+    -53.291  = Validation score   (-root_mean_squared_error)
+    43.27s   = Training   runtime
+    0.84s    = Validation runtime
+Fitting model: CatBoost_BAG_L2 ... Training model for up to 7.1s of the 7.08s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    Time limit exceeded... Skipping CatBoost_BAG_L2.
+Fitting model: ExtraTreesMSE_BAG_L2 ... Training model for up to 0.48s of the 0.44s of remaining time.
+2023-05-26 07:51:52,261 ERROR worker.py:400 -- Unhandled error (suppress with 'RAY_IGNORE_UNHANDLED_ERRORS=1'): The worker died unexpectedly while executing this task. Check python-core-worker-*.log files for more information.
+    -53.3828     = Validation score   (-root_mean_squared_error)
+    17.18s   = Training   runtime
+    0.85s    = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L3 ... Training model for up to 360.0s of the -18.89s of remaining time.
+    -52.5761     = Validation score   (-root_mean_squared_error)
+    0.28s    = Training   runtime
+    0.0s     = Validation runtime
+AutoGluon training complete, total runtime = 619.21s ... Best model: "WeightedEnsemble_L3"
+TabularPredictor saved. To load, use: predictor = TabularPredictor.load("AutogluonModels/ag-20230526_074151/")</code></pre>
+</div>
+</div>
+<section id="review-autogluons-training-run-with-ranking-of-models-that-did-the-best." class="level3">
+<h3 class="anchored" data-anchor-id="review-autogluons-training-run-with-ranking-of-models-that-did-the-best.">Review AutoGluon’s training run with ranking of models that did the best.</h3>
+<div class="cell" data-outputid="9939461b-0af9-4652-e28c-8f86d4627b93">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>predictor.fit_summary()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>*** Summary of fit() ***
+Estimated performance of each model:
+                     model   score_val  pred_time_val    fit_time  pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  fit_order
+0      WeightedEnsemble_L3  -52.576096      30.010471  478.078084                0.001048           0.278779            3       True         12
+1   RandomForestMSE_BAG_L2  -53.291017      28.741719  424.229200                0.838891          43.271575            2       True         10
+2     ExtraTreesMSE_BAG_L2  -53.382756      28.750743  398.135309                0.847916          17.177684            2       True         11
+3          LightGBM_BAG_L2  -54.793168      28.322617  417.350047                0.419789          36.392422            2       True          9
+4        LightGBMXT_BAG_L2  -61.072182      38.575348  463.859215               10.672520          82.901590            2       True          8
+5    KNeighborsDist_BAG_L1  -84.125061       0.043805    0.036887                0.043805           0.036887            1       True          2
+6      WeightedEnsemble_L2  -84.125061       0.045573    0.667892                0.001768           0.631005            2       True          7
+7    KNeighborsUnif_BAG_L1 -101.546199       0.044465    0.036242                0.044465           0.036242            1       True          1
+8   RandomForestMSE_BAG_L1 -116.625366       0.641476   20.286717                0.641476          20.286717            1       True          5
+9          LightGBM_BAG_L1 -130.675014       5.499672   53.291182                5.499672          53.291182            1       True          4
+10       LightGBMXT_BAG_L1 -131.159249      21.421916  186.893169               21.421916         186.893169            1       True          3
+11         CatBoost_BAG_L1 -133.772438       0.251494  120.413429                0.251494         120.413429            1       True          6
+Number of models trained: 12
+Types of models trained:
+{'WeightedEnsembleModel', 'StackerEnsembleModel_XT', 'StackerEnsembleModel_KNN', 'StackerEnsembleModel_LGB', 'StackerEnsembleModel_CatBoost', 'StackerEnsembleModel_RF'}
+Bagging used: True  (with 8 folds)
+Multi-layer stack-ensembling used: True  (with 3 levels)
+Feature Metadata (Processed):
+(raw dtype, special dtypes):
+('category', [])             : 2 | ['season', 'weather']
+('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+('int', [])                  : 1 | ['humidity']
+('int', ['bool'])            : 2 | ['holiday', 'workingday']
+('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+*** End of fit() summary ***</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.10/dist-packages/autogluon/core/utils/plots.py:138: UserWarning: AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"
+  warnings.warn('AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"')</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="69">
+<pre><code>{'model_types': {'KNeighborsUnif_BAG_L1': 'StackerEnsembleModel_KNN',
+  'KNeighborsDist_BAG_L1': 'StackerEnsembleModel_KNN',
+  'LightGBMXT_BAG_L1': 'StackerEnsembleModel_LGB',
+  'LightGBM_BAG_L1': 'StackerEnsembleModel_LGB',
+  'RandomForestMSE_BAG_L1': 'StackerEnsembleModel_RF',
+  'CatBoost_BAG_L1': 'StackerEnsembleModel_CatBoost',
+  'WeightedEnsemble_L2': 'WeightedEnsembleModel',
+  'LightGBMXT_BAG_L2': 'StackerEnsembleModel_LGB',
+  'LightGBM_BAG_L2': 'StackerEnsembleModel_LGB',
+  'RandomForestMSE_BAG_L2': 'StackerEnsembleModel_RF',
+  'ExtraTreesMSE_BAG_L2': 'StackerEnsembleModel_XT',
+  'WeightedEnsemble_L3': 'WeightedEnsembleModel'},
+ 'model_performance': {'KNeighborsUnif_BAG_L1': -101.54619908446061,
+  'KNeighborsDist_BAG_L1': -84.12506123181602,
+  'LightGBMXT_BAG_L1': -131.15924850163722,
+  'LightGBM_BAG_L1': -130.67501424016515,
+  'RandomForestMSE_BAG_L1': -116.62536550916602,
+  'CatBoost_BAG_L1': -133.7724377937292,
+  'WeightedEnsemble_L2': -84.12506123181602,
+  'LightGBMXT_BAG_L2': -61.07218211582261,
+  'LightGBM_BAG_L2': -54.79316841050465,
+  'RandomForestMSE_BAG_L2': -53.29101655654109,
+  'ExtraTreesMSE_BAG_L2': -53.3827555122278,
+  'WeightedEnsemble_L3': -52.57609605856379},
+ 'model_best': 'WeightedEnsemble_L3',
+ 'model_paths': {'KNeighborsUnif_BAG_L1': 'AutogluonModels/ag-20230526_074151/models/KNeighborsUnif_BAG_L1/',
+  'KNeighborsDist_BAG_L1': 'AutogluonModels/ag-20230526_074151/models/KNeighborsDist_BAG_L1/',
+  'LightGBMXT_BAG_L1': 'AutogluonModels/ag-20230526_074151/models/LightGBMXT_BAG_L1/',
+  'LightGBM_BAG_L1': 'AutogluonModels/ag-20230526_074151/models/LightGBM_BAG_L1/',
+  'RandomForestMSE_BAG_L1': 'AutogluonModels/ag-20230526_074151/models/RandomForestMSE_BAG_L1/',
+  'CatBoost_BAG_L1': 'AutogluonModels/ag-20230526_074151/models/CatBoost_BAG_L1/',
+  'WeightedEnsemble_L2': 'AutogluonModels/ag-20230526_074151/models/WeightedEnsemble_L2/',
+  'LightGBMXT_BAG_L2': 'AutogluonModels/ag-20230526_074151/models/LightGBMXT_BAG_L2/',
+  'LightGBM_BAG_L2': 'AutogluonModels/ag-20230526_074151/models/LightGBM_BAG_L2/',
+  'RandomForestMSE_BAG_L2': 'AutogluonModels/ag-20230526_074151/models/RandomForestMSE_BAG_L2/',
+  'ExtraTreesMSE_BAG_L2': 'AutogluonModels/ag-20230526_074151/models/ExtraTreesMSE_BAG_L2/',
+  'WeightedEnsemble_L3': 'AutogluonModels/ag-20230526_074151/models/WeightedEnsemble_L3/'},
+ 'model_fit_times': {'KNeighborsUnif_BAG_L1': 0.036241769790649414,
+  'KNeighborsDist_BAG_L1': 0.03688669204711914,
+  'LightGBMXT_BAG_L1': 186.8931691646576,
+  'LightGBM_BAG_L1': 53.291181564331055,
+  'RandomForestMSE_BAG_L1': 20.286717176437378,
+  'CatBoost_BAG_L1': 120.41342854499817,
+  'WeightedEnsemble_L2': 0.6310052871704102,
+  'LightGBMXT_BAG_L2': 82.9015896320343,
+  'LightGBM_BAG_L2': 36.39242172241211,
+  'RandomForestMSE_BAG_L2': 43.27157473564148,
+  'ExtraTreesMSE_BAG_L2': 17.17768359184265,
+  'WeightedEnsemble_L3': 0.2787787914276123},
+ 'model_pred_times': {'KNeighborsUnif_BAG_L1': 0.044465065002441406,
+  'KNeighborsDist_BAG_L1': 0.04380488395690918,
+  'LightGBMXT_BAG_L1': 21.421916007995605,
+  'LightGBM_BAG_L1': 5.499671697616577,
+  'RandomForestMSE_BAG_L1': 0.6414763927459717,
+  'CatBoost_BAG_L1': 0.2514936923980713,
+  'WeightedEnsemble_L2': 0.001767873764038086,
+  'LightGBMXT_BAG_L2': 10.67251992225647,
+  'LightGBM_BAG_L2': 0.41978883743286133,
+  'RandomForestMSE_BAG_L2': 0.8388912677764893,
+  'ExtraTreesMSE_BAG_L2': 0.8479156494140625,
+  'WeightedEnsemble_L3': 0.0010476112365722656},
+ 'num_bag_folds': 8,
+ 'max_stack_level': 3,
+ 'model_hyperparams': {'KNeighborsUnif_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'KNeighborsDist_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'LightGBMXT_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBM_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForestMSE_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'CatBoost_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'WeightedEnsemble_L2': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBMXT_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBM_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForestMSE_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'ExtraTreesMSE_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'WeightedEnsemble_L3': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True}},
+ 'leaderboard':                      model   score_val  pred_time_val    fit_time  \
+ 0      WeightedEnsemble_L3  -52.576096      30.010471  478.078084   
+ 1   RandomForestMSE_BAG_L2  -53.291017      28.741719  424.229200   
+ 2     ExtraTreesMSE_BAG_L2  -53.382756      28.750743  398.135309   
+ 3          LightGBM_BAG_L2  -54.793168      28.322617  417.350047   
+ 4        LightGBMXT_BAG_L2  -61.072182      38.575348  463.859215   
+ 5    KNeighborsDist_BAG_L1  -84.125061       0.043805    0.036887   
+ 6      WeightedEnsemble_L2  -84.125061       0.045573    0.667892   
+ 7    KNeighborsUnif_BAG_L1 -101.546199       0.044465    0.036242   
+ 8   RandomForestMSE_BAG_L1 -116.625366       0.641476   20.286717   
+ 9          LightGBM_BAG_L1 -130.675014       5.499672   53.291182   
+ 10       LightGBMXT_BAG_L1 -131.159249      21.421916  186.893169   
+ 11         CatBoost_BAG_L1 -133.772438       0.251494  120.413429   
+ 
+     pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  \
+ 0                 0.001048           0.278779            3       True   
+ 1                 0.838891          43.271575            2       True   
+ 2                 0.847916          17.177684            2       True   
+ 3                 0.419789          36.392422            2       True   
+ 4                10.672520          82.901590            2       True   
+ 5                 0.043805           0.036887            1       True   
+ 6                 0.001768           0.631005            2       True   
+ 7                 0.044465           0.036242            1       True   
+ 8                 0.641476          20.286717            1       True   
+ 9                 5.499672          53.291182            1       True   
+ 10               21.421916         186.893169            1       True   
+ 11                0.251494         120.413429            1       True   
+ 
+     fit_order  
+ 0          12  
+ 1          10  
+ 2          11  
+ 3           9  
+ 4           8  
+ 5           2  
+ 6           7  
+ 7           1  
+ 8           5  
+ 9           4  
+ 10          3  
+ 11          6  }</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="4ca4e035-7bbc-428f-d26d-06a2c4d64f7d">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>predictor.leaderboard(silent<span class="op">=</span><span class="va">True</span>).plot(kind<span class="op">=</span><span class="st">"bar"</span>, x<span class="op">=</span><span class="st">"model"</span>, y<span class="op">=</span><span class="st">"score_val"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="70">
+<pre><code>&lt;Axes: xlabel='model'&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-17-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="create-predictions-from-test-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="create-predictions-from-test-dataset">Create predictions from test dataset</h3>
+<div class="cell" data-outputid="8f3e9129-cb2b-4b37-a15c-a1be97ca7cc2">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>predictions <span class="op">=</span> predictor.predict(test)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>predictions.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="71">
+<pre><code>0    23.171047
+1    41.330738
+2    45.296040
+3    48.605858
+4    51.984993
+Name: count, dtype: float32</code></pre>
+</div>
+</div>
+<section id="note-kaggle-will-reject-the-submission-if-we-dont-set-everything-to-be-0." class="level4">
+<h4 class="anchored" data-anchor-id="note-kaggle-will-reject-the-submission-if-we-dont-set-everything-to-be-0.">NOTE: Kaggle will reject the submission if we don’t set everything to be &gt; 0.</h4>
+<div class="cell" data-outputid="ecf46cdf-55dd-4318-dd7e-fb64f9f8b1a7">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Describe the `predictions` series to see if there are any negative values</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>predictions.describe()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="72">
+<pre><code>count    6493.000000
+mean      100.268829
+std        90.229675
+min         3.072221
+25%        19.915821
+50%        62.896004
+75%       170.020111
+max       363.827271
+Name: count, dtype: float64</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="35e3972f-57c0-4510-ef66-e94379342130">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How many negative values do we have?</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>predictions.lt(<span class="dv">0</span>).<span class="bu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="73">
+<pre><code>0</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="94dc6d78-6163-468a-d01e-e779218fc359">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set them to zero</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>predictions[predictions.lt(<span class="dv">0</span>)] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>predictions.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="74">
+<pre><code>0    23.171047
+1    41.330738
+2    45.296040
+3    48.605858
+4    51.984993
+Name: count, dtype: float32</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="e92408e9-1995-4e71-bdb1-9edcc797e147">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>predictions.lt(<span class="dv">0</span>).<span class="bu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="75">
+<pre><code>0</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="set-predictions-to-submission-dataframe-save-and-submit" class="level3">
+<h3 class="anchored" data-anchor-id="set-predictions-to-submission-dataframe-save-and-submit">Set predictions to submission dataframe, save, and submit</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>submission[<span class="st">"count"</span>] <span class="op">=</span> predictions</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>submission.to_csv(<span class="st">"submission.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="4c95d1bf-4856-416f-bded-f1cde91a3ff0">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submit <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">-</span>f submission.csv <span class="op">-</span>m <span class="st">"first raw submission"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>100% 188k/188k [00:02&lt;00:00, 78.9kB/s]
+Successfully submitted to Bike Sharing Demand</code></pre>
+</div>
+</div>
+<section id="view-submission-via-the-command-line-or-in-the-web-browser-under-the-competitions-page---my-submissions" class="level4">
+<h4 class="anchored" data-anchor-id="view-submission-via-the-command-line-or-in-the-web-browser-under-the-competitions-page---my-submissions">View submission via the command line or in the web browser under the competition’s page - <code>My Submissions</code></h4>
+<div class="cell" data-outputid="2c9d0cc0-8263-4cfc-c78b-583476a2e608">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submissions <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">|</span> tail <span class="op">-</span>n <span class="op">+</span><span class="dv">1</span> <span class="op">|</span> head <span class="op">-</span>n <span class="dv">6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fileName                     date                 description                             status    publicScore  privateScore  
+---------------------------  -------------------  --------------------------------------  --------  -----------  ------------  
+submission.csv               2023-05-26 07:53:31  first raw submission                    complete  1.81590      1.81590       
+submission.csv               2023-05-26 06:48:23  gradient boosting with GridSearchCV     complete  0.38863      0.38863       
+submission_new_hpo_1.csv     2023-05-26 06:27:38  new features with increased time limit  complete  0.67070      0.67070       
+submission_new_hpo.csv       2023-05-26 06:02:10  new features with hyperparameters       complete  0.64431      0.64431       </code></pre>
+</div>
+</div>
+</section>
+<section id="initial-score-of-1.78725" class="level4">
+<h4 class="anchored" data-anchor-id="initial-score-of-1.78725">Initial score of <span class="math inline">\(1.78725\)</span></h4>
+</section>
+</section>
+</section>
+<section id="step-4-exploratory-data-analysis-and-creating-an-additional-feature" class="level2">
+<h2 class="anchored" data-anchor-id="step-4-exploratory-data-analysis-and-creating-an-additional-feature">Step 4: Exploratory Data Analysis and Creating an additional feature</h2>
+<ul>
+<li>Any additional feature will do, but a great suggestion would be to separate out the datetime into hour, day, or month parts.</li>
+</ul>
+<div class="cell" data-outputid="176cdb07-b262-4e00-f54e-23a7dadec9ac">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a histogram of all features to show the distribution of each one relative to the data. This is part of the exploritory data analysis</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>train.hist()<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-26-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create a new feature</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'hour'</span>] <span class="op">=</span> train.datetime.dt.hour</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>test[<span class="st">'hour'</span>] <span class="op">=</span> test.datetime.dt.hour</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="make-category-types-for-these-so-models-know-they-are-not-just-numbers" class="level2">
+<h2 class="anchored" data-anchor-id="make-category-types-for-these-so-models-know-they-are-not-just-numbers">Make category types for these so models know they are not just numbers</h2>
+<ul>
+<li>AutoGluon originally sees these as ints, but in reality they are int representations of a category.</li>
+<li>Setting the dtype to category will classify these as categories in AutoGluon.</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Accidentally done above</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="co"># train["season"] = ?</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="co"># train["weather"] = ?</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a><span class="co"># test["season"] = ?</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a><span class="co"># test["weather"] = ?</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="4c5f8986-37f1-4b11-a07f-881ac43daf4d">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>train.info()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 10886 entries, 0 to 10885
+Data columns (total 13 columns):
+ #   Column      Non-Null Count  Dtype         
+---  ------      --------------  -----         
+ 0   datetime    10886 non-null  datetime64[ns]
+ 1   season      10886 non-null  category      
+ 2   holiday     10886 non-null  category      
+ 3   workingday  10886 non-null  category      
+ 4   weather     10886 non-null  category      
+ 5   temp        10886 non-null  float64       
+ 6   atemp       10886 non-null  float64       
+ 7   humidity    10886 non-null  int64         
+ 8   windspeed   10886 non-null  float64       
+ 9   casual      10886 non-null  int64         
+ 10  registered  10886 non-null  int64         
+ 11  count       10886 non-null  int64         
+ 12  hour        10886 non-null  int64         
+dtypes: category(4), datetime64[ns](1), float64(3), int64(5)
+memory usage: 808.7 KB</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="f780da07-480a-41ce-a5f5-0b285b189da8">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View are new feature</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>train.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="83">
+
+  <div id="df-4633eeea-4fcd-40b5-95b9-a1ffbd458921">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">datetime</th>
+<th data-quarto-table-cell-role="th">season</th>
+<th data-quarto-table-cell-role="th">holiday</th>
+<th data-quarto-table-cell-role="th">workingday</th>
+<th data-quarto-table-cell-role="th">weather</th>
+<th data-quarto-table-cell-role="th">temp</th>
+<th data-quarto-table-cell-role="th">atemp</th>
+<th data-quarto-table-cell-role="th">humidity</th>
+<th data-quarto-table-cell-role="th">windspeed</th>
+<th data-quarto-table-cell-role="th">casual</th>
+<th data-quarto-table-cell-role="th">registered</th>
+<th data-quarto-table-cell-role="th">count</th>
+<th data-quarto-table-cell-role="th">hour</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2011-01-01 00:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>81</td>
+<td>0.0</td>
+<td>3</td>
+<td>13</td>
+<td>16</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2011-01-01 01:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.02</td>
+<td>13.635</td>
+<td>80</td>
+<td>0.0</td>
+<td>8</td>
+<td>32</td>
+<td>40</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2011-01-01 02:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.02</td>
+<td>13.635</td>
+<td>80</td>
+<td>0.0</td>
+<td>5</td>
+<td>27</td>
+<td>32</td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>2011-01-01 03:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>75</td>
+<td>0.0</td>
+<td>3</td>
+<td>10</td>
+<td>13</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>2011-01-01 04:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>75</td>
+<td>0.0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>4</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-4633eeea-4fcd-40b5-95b9-a1ffbd458921')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-4633eeea-4fcd-40b5-95b9-a1ffbd458921 button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-4633eeea-4fcd-40b5-95b9-a1ffbd458921');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="6292f990-5ff2-413b-d67e-430fb79b6a20">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View histogram of all features again now with the hour feature</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>train.hist()<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-31-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="step-5-rerun-the-model-with-the-same-settings-as-before-just-with-more-features" class="level2">
+<h2 class="anchored" data-anchor-id="step-5-rerun-the-model-with-the-same-settings-as-before-just-with-more-features">Step 5: Rerun the model with the same settings as before, just with more features</h2>
+<div class="cell" data-outputid="341d7af8-a7cf-49eb-dd41-90c58ca25e60">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>predictor_new_features <span class="op">=</span> TabularPredictor(label<span class="op">=</span><span class="st">'count'</span>,</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>                             problem_type<span class="op">=</span><span class="st">'regression'</span>,</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>                             learner_kwargs <span class="op">=</span> {<span class="st">'ignored_columns'</span>: [<span class="st">'casual'</span>, <span class="st">'registered'</span>]}</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>                             ).fit(train_data<span class="op">=</span>train, time_limit<span class="op">=</span><span class="dv">600</span>, presets<span class="op">=</span><span class="st">"best_quality"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No path specified. Models will be saved in: "AutogluonModels/ag-20230526_075339/"
+Presets specified: ['best_quality']
+Stack configuration (auto_stack=True): num_stack_levels=1, num_bag_folds=8, num_bag_sets=20
+Beginning AutoGluon training ... Time limit = 600s
+AutoGluon will save models to "AutogluonModels/ag-20230526_075339/"
+AutoGluon Version:  0.7.0
+Python Version:     3.10.11
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP Sat Apr 29 09:15:28 UTC 2023
+Train Data Rows:    10886
+Train Data Columns: 12
+Label Column: count
+Preprocessing data ...
+Using Feature Generators to preprocess the data ...
+Dropping user-specified ignored columns: ['casual', 'registered']
+Fitting AutoMLPipelineFeatureGenerator...
+    Available Memory:                    10841.68 MB
+    Train Data (Original)  Memory Usage: 0.57 MB (0.0% of available memory)
+    Inferring data type of each feature based on column values. Set feature_metadata_in to manually specify special dtypes of the features.
+    Stage 1 Generators:
+        Fitting AsTypeFeatureGenerator...
+            Note: Converting 2 features to boolean dtype as they only contain 2 unique values.
+    Stage 2 Generators:
+        Fitting FillNaFeatureGenerator...
+    Stage 3 Generators:
+        Fitting IdentityFeatureGenerator...
+        Fitting CategoryFeatureGenerator...
+            Fitting CategoryMemoryMinimizeFeatureGenerator...
+        Fitting DatetimeFeatureGenerator...
+    Stage 4 Generators:
+        Fitting DropUniqueFeatureGenerator...
+    Types of features in original data (raw dtype, special dtypes):
+        ('category', []) : 4 | ['season', 'holiday', 'workingday', 'weather']
+        ('datetime', []) : 1 | ['datetime']
+        ('float', [])    : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])      : 2 | ['humidity', 'hour']
+    Types of features in processed data (raw dtype, special dtypes):
+        ('category', [])             : 2 | ['season', 'weather']
+        ('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])                  : 2 | ['humidity', 'hour']
+        ('int', ['bool'])            : 2 | ['holiday', 'workingday']
+        ('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+    0.3s = Fit runtime
+    10 features in original data used to generate 14 features in processed data.
+    Train Data (Processed) Memory Usage: 0.92 MB (0.0% of available memory)
+Data preprocessing and feature engineering runtime = 0.31s ...
+AutoGluon will gauge predictive performance using evaluation metric: 'root_mean_squared_error'
+    This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+    To change this, specify the eval_metric parameter of Predictor()
+AutoGluon will fit 2 stack levels (L1 to L2) ...
+Fitting 11 L1 models ...
+Fitting model: KNeighborsUnif_BAG_L1 ... Training model for up to 399.69s of the 599.68s of remaining time.
+    -101.5462    = Validation score   (-root_mean_squared_error)
+    0.09s    = Training   runtime
+    0.08s    = Validation runtime
+Fitting model: KNeighborsDist_BAG_L1 ... Training model for up to 399.45s of the 599.44s of remaining time.
+    -84.1251     = Validation score   (-root_mean_squared_error)
+    0.06s    = Training   runtime
+    0.08s    = Validation runtime
+Fitting model: LightGBMXT_BAG_L1 ... Training model for up to 399.24s of the 599.23s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -34.4573     = Validation score   (-root_mean_squared_error)
+    165.95s  = Training   runtime
+    47.76s   = Validation runtime
+Fitting model: LightGBM_BAG_L1 ... Training model for up to 227.41s of the 427.4s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -33.9196     = Validation score   (-root_mean_squared_error)
+    75.39s   = Training   runtime
+    13.71s   = Validation runtime
+Fitting model: RandomForestMSE_BAG_L1 ... Training model for up to 145.08s of the 345.07s of remaining time.
+    -38.4543     = Validation score   (-root_mean_squared_error)
+    22.24s   = Training   runtime
+    0.63s    = Validation runtime
+Fitting model: CatBoost_BAG_L1 ... Training model for up to 121.26s of the 321.25s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -36.2645     = Validation score   (-root_mean_squared_error)
+    120.68s  = Training   runtime
+    0.41s    = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L2 ... Training model for up to 360.0s of the 194.53s of remaining time.
+    -32.3258     = Validation score   (-root_mean_squared_error)
+    0.64s    = Training   runtime
+    0.0s     = Validation runtime
+Fitting 9 L2 models ...
+Fitting model: LightGBMXT_BAG_L2 ... Training model for up to 193.83s of the 193.81s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -31.0704     = Validation score   (-root_mean_squared_error)
+    62.01s   = Training   runtime
+    2.28s    = Validation runtime
+Fitting model: LightGBM_BAG_L2 ... Training model for up to 121.39s of the 121.36s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -30.542  = Validation score   (-root_mean_squared_error)
+    47.8s    = Training   runtime
+    0.76s    = Validation runtime
+Fitting model: RandomForestMSE_BAG_L2 ... Training model for up to 63.62s of the 63.6s of remaining time.
+    -31.8941     = Validation score   (-root_mean_squared_error)
+    56.33s   = Training   runtime
+    0.79s    = Validation runtime
+Fitting model: CatBoost_BAG_L2 ... Training model for up to 5.02s of the 4.99s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    Time limit exceeded... Skipping CatBoost_BAG_L2.
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L3 ... Training model for up to 360.0s of the -3.22s of remaining time.
+2023-05-26 08:03:42,900 ERROR worker.py:400 -- Unhandled error (suppress with 'RAY_IGNORE_UNHANDLED_ERRORS=1'): The worker died unexpectedly while executing this task. Check python-core-worker-*.log files for more information.
+    -30.3193     = Validation score   (-root_mean_squared_error)
+    1.25s    = Training   runtime
+    0.0s     = Validation runtime
+AutoGluon training complete, total runtime = 604.6s ... Best model: "WeightedEnsemble_L3"
+TabularPredictor saved. To load, use: predictor = TabularPredictor.load("AutogluonModels/ag-20230526_075339/")</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="f5b97894-ec01-4e9a-c13d-5864e18608d3">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>predictor_new_features.fit_summary()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.10/dist-packages/autogluon/core/utils/plots.py:138: UserWarning: AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"
+  warnings.warn('AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"')</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>*** Summary of fit() ***
+Estimated performance of each model:
+                     model   score_val  pred_time_val    fit_time  pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  fit_order
+0      WeightedEnsemble_L3  -30.319297      66.501119  551.807319                0.001804           1.254721            3       True         11
+1          LightGBM_BAG_L2  -30.542002      63.428139  432.209137                0.764104          47.804294            2       True          9
+2        LightGBMXT_BAG_L2  -31.070389      64.941408  446.419285                2.277373          62.014441            2       True          8
+3   RandomForestMSE_BAG_L2  -31.894055      63.457839  440.733863                0.793804          56.329019            2       True         10
+4      WeightedEnsemble_L2  -32.325810      62.589321  384.957622                0.001415           0.639061            2       True          7
+5          LightGBM_BAG_L1  -33.919639      13.706392   75.390034               13.706392          75.390034            1       True          4
+6        LightGBMXT_BAG_L1  -34.457274      47.762392  165.954343               47.762392         165.954343            1       True          3
+7          CatBoost_BAG_L1  -36.264539       0.409190  120.677041                0.409190         120.677041            1       True          6
+8   RandomForestMSE_BAG_L1  -38.454338       0.625456   22.235382                0.625456          22.235382            1       True          5
+9    KNeighborsDist_BAG_L1  -84.125061       0.084476    0.061759                0.084476           0.061759            1       True          2
+10   KNeighborsUnif_BAG_L1 -101.546199       0.076128    0.086283                0.076128           0.086283            1       True          1
+Number of models trained: 11
+Types of models trained:
+{'WeightedEnsembleModel', 'StackerEnsembleModel_KNN', 'StackerEnsembleModel_LGB', 'StackerEnsembleModel_CatBoost', 'StackerEnsembleModel_RF'}
+Bagging used: True  (with 8 folds)
+Multi-layer stack-ensembling used: True  (with 3 levels)
+Feature Metadata (Processed):
+(raw dtype, special dtypes):
+('category', [])             : 2 | ['season', 'weather']
+('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+('int', [])                  : 2 | ['humidity', 'hour']
+('int', ['bool'])            : 2 | ['holiday', 'workingday']
+('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+*** End of fit() summary ***</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="86">
+<pre><code>{'model_types': {'KNeighborsUnif_BAG_L1': 'StackerEnsembleModel_KNN',
+  'KNeighborsDist_BAG_L1': 'StackerEnsembleModel_KNN',
+  'LightGBMXT_BAG_L1': 'StackerEnsembleModel_LGB',
+  'LightGBM_BAG_L1': 'StackerEnsembleModel_LGB',
+  'RandomForestMSE_BAG_L1': 'StackerEnsembleModel_RF',
+  'CatBoost_BAG_L1': 'StackerEnsembleModel_CatBoost',
+  'WeightedEnsemble_L2': 'WeightedEnsembleModel',
+  'LightGBMXT_BAG_L2': 'StackerEnsembleModel_LGB',
+  'LightGBM_BAG_L2': 'StackerEnsembleModel_LGB',
+  'RandomForestMSE_BAG_L2': 'StackerEnsembleModel_RF',
+  'WeightedEnsemble_L3': 'WeightedEnsembleModel'},
+ 'model_performance': {'KNeighborsUnif_BAG_L1': -101.54619908446061,
+  'KNeighborsDist_BAG_L1': -84.12506123181602,
+  'LightGBMXT_BAG_L1': -34.457273921492806,
+  'LightGBM_BAG_L1': -33.919639163586254,
+  'RandomForestMSE_BAG_L1': -38.4543378929385,
+  'CatBoost_BAG_L1': -36.26453917834972,
+  'WeightedEnsemble_L2': -32.32580987990545,
+  'LightGBMXT_BAG_L2': -31.0703892512367,
+  'LightGBM_BAG_L2': -30.54200200827149,
+  'RandomForestMSE_BAG_L2': -31.894054693194832,
+  'WeightedEnsemble_L3': -30.319296825239693},
+ 'model_best': 'WeightedEnsemble_L3',
+ 'model_paths': {'KNeighborsUnif_BAG_L1': 'AutogluonModels/ag-20230526_075339/models/KNeighborsUnif_BAG_L1/',
+  'KNeighborsDist_BAG_L1': 'AutogluonModels/ag-20230526_075339/models/KNeighborsDist_BAG_L1/',
+  'LightGBMXT_BAG_L1': 'AutogluonModels/ag-20230526_075339/models/LightGBMXT_BAG_L1/',
+  'LightGBM_BAG_L1': 'AutogluonModels/ag-20230526_075339/models/LightGBM_BAG_L1/',
+  'RandomForestMSE_BAG_L1': 'AutogluonModels/ag-20230526_075339/models/RandomForestMSE_BAG_L1/',
+  'CatBoost_BAG_L1': 'AutogluonModels/ag-20230526_075339/models/CatBoost_BAG_L1/',
+  'WeightedEnsemble_L2': 'AutogluonModels/ag-20230526_075339/models/WeightedEnsemble_L2/',
+  'LightGBMXT_BAG_L2': 'AutogluonModels/ag-20230526_075339/models/LightGBMXT_BAG_L2/',
+  'LightGBM_BAG_L2': 'AutogluonModels/ag-20230526_075339/models/LightGBM_BAG_L2/',
+  'RandomForestMSE_BAG_L2': 'AutogluonModels/ag-20230526_075339/models/RandomForestMSE_BAG_L2/',
+  'WeightedEnsemble_L3': 'AutogluonModels/ag-20230526_075339/models/WeightedEnsemble_L3/'},
+ 'model_fit_times': {'KNeighborsUnif_BAG_L1': 0.08628344535827637,
+  'KNeighborsDist_BAG_L1': 0.061759233474731445,
+  'LightGBMXT_BAG_L1': 165.95434284210205,
+  'LightGBM_BAG_L1': 75.39003443717957,
+  'RandomForestMSE_BAG_L1': 22.235382318496704,
+  'CatBoost_BAG_L1': 120.67704129219055,
+  'WeightedEnsemble_L2': 0.639061450958252,
+  'LightGBMXT_BAG_L2': 62.01444125175476,
+  'LightGBM_BAG_L2': 47.804293632507324,
+  'RandomForestMSE_BAG_L2': 56.32901906967163,
+  'WeightedEnsemble_L3': 1.2547214031219482},
+ 'model_pred_times': {'KNeighborsUnif_BAG_L1': 0.07612848281860352,
+  'KNeighborsDist_BAG_L1': 0.08447623252868652,
+  'LightGBMXT_BAG_L1': 47.762391805648804,
+  'LightGBM_BAG_L1': 13.706392049789429,
+  'RandomForestMSE_BAG_L1': 0.6254563331604004,
+  'CatBoost_BAG_L1': 0.40918970108032227,
+  'WeightedEnsemble_L2': 0.0014147758483886719,
+  'LightGBMXT_BAG_L2': 2.2773730754852295,
+  'LightGBM_BAG_L2': 0.7641041278839111,
+  'RandomForestMSE_BAG_L2': 0.7938039302825928,
+  'WeightedEnsemble_L3': 0.0018036365509033203},
+ 'num_bag_folds': 8,
+ 'max_stack_level': 3,
+ 'model_hyperparams': {'KNeighborsUnif_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'KNeighborsDist_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'LightGBMXT_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBM_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForestMSE_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'CatBoost_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'WeightedEnsemble_L2': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBMXT_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBM_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForestMSE_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'WeightedEnsemble_L3': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True}},
+ 'leaderboard':                      model   score_val  pred_time_val    fit_time  \
+ 0      WeightedEnsemble_L3  -30.319297      66.501119  551.807319   
+ 1          LightGBM_BAG_L2  -30.542002      63.428139  432.209137   
+ 2        LightGBMXT_BAG_L2  -31.070389      64.941408  446.419285   
+ 3   RandomForestMSE_BAG_L2  -31.894055      63.457839  440.733863   
+ 4      WeightedEnsemble_L2  -32.325810      62.589321  384.957622   
+ 5          LightGBM_BAG_L1  -33.919639      13.706392   75.390034   
+ 6        LightGBMXT_BAG_L1  -34.457274      47.762392  165.954343   
+ 7          CatBoost_BAG_L1  -36.264539       0.409190  120.677041   
+ 8   RandomForestMSE_BAG_L1  -38.454338       0.625456   22.235382   
+ 9    KNeighborsDist_BAG_L1  -84.125061       0.084476    0.061759   
+ 10   KNeighborsUnif_BAG_L1 -101.546199       0.076128    0.086283   
+ 
+     pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  \
+ 0                 0.001804           1.254721            3       True   
+ 1                 0.764104          47.804294            2       True   
+ 2                 2.277373          62.014441            2       True   
+ 3                 0.793804          56.329019            2       True   
+ 4                 0.001415           0.639061            2       True   
+ 5                13.706392          75.390034            1       True   
+ 6                47.762392         165.954343            1       True   
+ 7                 0.409190         120.677041            1       True   
+ 8                 0.625456          22.235382            1       True   
+ 9                 0.084476           0.061759            1       True   
+ 10                0.076128           0.086283            1       True   
+ 
+     fit_order  
+ 0          11  
+ 1           9  
+ 2           8  
+ 3          10  
+ 4           7  
+ 5           4  
+ 6           3  
+ 7           6  
+ 8           5  
+ 9           2  
+ 10          1  }</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="4ece9a62-5ada-48ed-c424-cd53565f445f">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Remember to set all negative values to zero</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>predictions <span class="op">=</span> predictor_new_features.predict(test)</span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>predictions.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="87">
+<pre><code>0    16.392593
+1    10.719270
+2     9.713212
+3     8.117026
+4     7.385385
+Name: count, dtype: float32</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="a9e7f114-9ed9-452d-c68e-5f504e26e19b">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>predictions.describe()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="88">
+<pre><code>count    6493.000000
+mean      161.544159
+std       143.743500
+min         2.417932
+25%        49.388428
+50%       123.076050
+75%       230.734970
+max       808.913086
+Name: count, dtype: float64</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="301a8bba-d3e8-4f9a-ff50-2704fd2bb17a">
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>predictions[predictions.lt(<span class="dv">0</span>)] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>predictions.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="89">
+<pre><code>0    16.392593
+1    10.719270
+2     9.713212
+3     8.117026
+4     7.385385
+Name: count, dtype: float32</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>submission_new_features <span class="op">=</span> submission</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Same submitting predictions</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>submission_new_features[<span class="st">"count"</span>] <span class="op">=</span> predictions</span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>submission_new_features.to_csv(<span class="st">"submission_new_features.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="89a88cb9-d08b-445d-b123-528834aa6849">
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submit <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">-</span>f submission_new_features.csv <span class="op">-</span>m <span class="st">"new features"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>100% 188k/188k [00:03&lt;00:00, 61.3kB/s]
+Successfully submitted to Bike Sharing Demand</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="0dbf0858-31d5-4cf0-93b6-7b8965d918b6">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submissions <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">|</span> tail <span class="op">-</span>n <span class="op">+</span><span class="dv">1</span> <span class="op">|</span> head <span class="op">-</span>n <span class="dv">6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fileName                     date                 description                             status    publicScore  privateScore  
+---------------------------  -------------------  --------------------------------------  --------  -----------  ------------  
+submission_new_features.csv  2023-05-26 08:06:23  new features                            complete  0.63415      0.63415       
+submission.csv               2023-05-26 07:53:31  first raw submission                    complete  1.81590      1.81590       
+submission.csv               2023-05-26 06:48:23  gradient boosting with GridSearchCV     complete  0.38863      0.38863       
+submission_new_hpo_1.csv     2023-05-26 06:27:38  new features with increased time limit  complete  0.67070      0.67070       </code></pre>
+</div>
+</div>
+<section id="new-score-of-0.63239" class="level4">
+<h4 class="anchored" data-anchor-id="new-score-of-0.63239">New Score of <span class="math inline">\(0.63239\)</span></h4>
+</section>
+</section>
+<section id="step-6-hyper-parameter-optimization" class="level2">
+<h2 class="anchored" data-anchor-id="step-6-hyper-parameter-optimization">Step 6: Hyper parameter optimization</h2>
+<ul>
+<li>There are many options for hyper parameter optimization.</li>
+<li>Options are to change the AutoGluon higher level parameters or the individual model hyperparameters.</li>
+<li>The hyperparameters of the models themselves that are in AutoGluon. Those need the <code>hyperparameter</code> and <code>hyperparameter_tune_kwargs</code> arguments.</li>
+</ul>
+<div class="cell" data-outputid="a2e6f147-8f82-40f8-9b17-1734fd67834e">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>predictor_new_hpo <span class="op">=</span> TabularPredictor(label<span class="op">=</span><span class="st">'count'</span>,</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>                             problem_type<span class="op">=</span><span class="st">'regression'</span>,</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>                             eval_metric<span class="op">=</span><span class="st">'r2'</span>,</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>                             learner_kwargs <span class="op">=</span> {<span class="st">'ignored_columns'</span>: [<span class="st">'casual'</span>, <span class="st">'registered'</span>]}</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>                             ).fit(train_data<span class="op">=</span>train, time_limit<span class="op">=</span><span class="dv">600</span>, presets<span class="op">=</span><span class="st">"best_quality"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No path specified. Models will be saved in: "AutogluonModels/ag-20230526_080624/"
+Presets specified: ['best_quality']
+Stack configuration (auto_stack=True): num_stack_levels=1, num_bag_folds=8, num_bag_sets=20
+Beginning AutoGluon training ... Time limit = 600s
+AutoGluon will save models to "AutogluonModels/ag-20230526_080624/"
+AutoGluon Version:  0.7.0
+Python Version:     3.10.11
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP Sat Apr 29 09:15:28 UTC 2023
+Train Data Rows:    10886
+Train Data Columns: 12
+Label Column: count
+Preprocessing data ...
+Using Feature Generators to preprocess the data ...
+Dropping user-specified ignored columns: ['casual', 'registered']
+Fitting AutoMLPipelineFeatureGenerator...
+    Available Memory:                    10794.66 MB
+    Train Data (Original)  Memory Usage: 0.57 MB (0.0% of available memory)
+    Inferring data type of each feature based on column values. Set feature_metadata_in to manually specify special dtypes of the features.
+    Stage 1 Generators:
+        Fitting AsTypeFeatureGenerator...
+            Note: Converting 2 features to boolean dtype as they only contain 2 unique values.
+    Stage 2 Generators:
+        Fitting FillNaFeatureGenerator...
+    Stage 3 Generators:
+        Fitting IdentityFeatureGenerator...
+        Fitting CategoryFeatureGenerator...
+            Fitting CategoryMemoryMinimizeFeatureGenerator...
+        Fitting DatetimeFeatureGenerator...
+    Stage 4 Generators:
+        Fitting DropUniqueFeatureGenerator...
+    Types of features in original data (raw dtype, special dtypes):
+        ('category', []) : 4 | ['season', 'holiday', 'workingday', 'weather']
+        ('datetime', []) : 1 | ['datetime']
+        ('float', [])    : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])      : 2 | ['humidity', 'hour']
+    Types of features in processed data (raw dtype, special dtypes):
+        ('category', [])             : 2 | ['season', 'weather']
+        ('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])                  : 2 | ['humidity', 'hour']
+        ('int', ['bool'])            : 2 | ['holiday', 'workingday']
+        ('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+    0.2s = Fit runtime
+    10 features in original data used to generate 14 features in processed data.
+    Train Data (Processed) Memory Usage: 0.92 MB (0.0% of available memory)
+Data preprocessing and feature engineering runtime = 0.24s ...
+AutoGluon will gauge predictive performance using evaluation metric: 'r2'
+    To change this, specify the eval_metric parameter of Predictor()
+AutoGluon will fit 2 stack levels (L1 to L2) ...
+Fitting 11 L1 models ...
+Fitting model: KNeighborsUnif_BAG_L1 ... Training model for up to 399.74s of the 599.75s of remaining time.
+    0.6857   = Validation score   (r2)
+    0.05s    = Training   runtime
+    0.04s    = Validation runtime
+Fitting model: KNeighborsDist_BAG_L1 ... Training model for up to 399.59s of the 599.61s of remaining time.
+    0.7843   = Validation score   (r2)
+    0.06s    = Training   runtime
+    0.06s    = Validation runtime
+Fitting model: LightGBMXT_BAG_L1 ... Training model for up to 399.43s of the 599.44s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    0.9638   = Validation score   (r2)
+    217.04s  = Training   runtime
+    61.07s   = Validation runtime
+Fitting model: LightGBM_BAG_L1 ... Training model for up to 171.71s of the 371.72s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    0.9649   = Validation score   (r2)
+    84.31s   = Training   runtime
+    11.52s   = Validation runtime
+Fitting model: RandomForestMSE_BAG_L1 ... Training model for up to 78.07s of the 278.09s of remaining time.
+    0.9549   = Validation score   (r2)
+    19.9s    = Training   runtime
+    1.18s    = Validation runtime
+Fitting model: CatBoost_BAG_L1 ... Training model for up to 55.18s of the 255.2s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    0.9518   = Validation score   (r2)
+    75.18s   = Training   runtime
+    0.21s    = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L2 ... Training model for up to 360.0s of the 170.2s of remaining time.
+    0.9681   = Validation score   (r2)
+    0.86s    = Training   runtime
+    0.0s     = Validation runtime
+Fitting 9 L2 models ...
+Fitting model: LightGBMXT_BAG_L2 ... Training model for up to 169.28s of the 169.24s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    0.9703   = Validation score   (r2)
+    71.9s    = Training   runtime
+    3.85s    = Validation runtime
+Fitting model: LightGBM_BAG_L2 ... Training model for up to 90.14s of the 90.11s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    0.9716   = Validation score   (r2)
+    48.13s   = Training   runtime
+    0.46s    = Validation runtime
+Fitting model: RandomForestMSE_BAG_L2 ... Training model for up to 36.05s of the 36.01s of remaining time.
+    0.9692   = Validation score   (r2)
+    46.61s   = Training   runtime
+    0.84s    = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L3 ... Training model for up to 360.0s of the -12.32s of remaining time.
+    0.9719   = Validation score   (r2)
+    0.24s    = Training   runtime
+    0.0s     = Validation runtime
+AutoGluon training complete, total runtime = 612.61s ... Best model: "WeightedEnsemble_L3"
+TabularPredictor saved. To load, use: predictor = TabularPredictor.load("AutogluonModels/ag-20230526_080624/")</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="923a7311-d003-4e84-f4a6-dc191297e4bc">
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>predictor_new_hpo.fit_summary()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>*** Summary of fit() ***
+Estimated performance of each model:
+                     model  score_val  pred_time_val    fit_time  pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  fit_order
+0      WeightedEnsemble_L3   0.971930      79.231010  563.399022                0.001140           0.237546            3       True         11
+1          LightGBM_BAG_L2   0.971605      74.535056  444.651903                0.458614          48.125891            2       True          9
+2        LightGBMXT_BAG_L2   0.970303      77.929162  468.424308                3.852720          71.898297            2       True          8
+3   RandomForestMSE_BAG_L2   0.969165      74.918536  443.137288                0.842094          46.611276            2       True         10
+4      WeightedEnsemble_L2   0.968108      73.824237  322.167844                0.001758           0.864281            2       True          7
+5          LightGBM_BAG_L1   0.964927      11.519504   84.312454               11.519504          84.312454            1       True          4
+6        LightGBMXT_BAG_L1   0.963803      61.066979  217.037857               61.066979         217.037857            1       True          3
+7   RandomForestMSE_BAG_L1   0.954931       1.180730   19.896883                1.180730          19.896883            1       True          5
+8          CatBoost_BAG_L1   0.951850       0.209254   75.176089                0.209254          75.176089            1       True          6
+9    KNeighborsDist_BAG_L1   0.784305       0.055267    0.056369                0.055267           0.056369            1       True          2
+10   KNeighborsUnif_BAG_L1   0.685720       0.044709    0.046359                0.044709           0.046359            1       True          1
+Number of models trained: 11
+Types of models trained:
+{'WeightedEnsembleModel', 'StackerEnsembleModel_KNN', 'StackerEnsembleModel_LGB', 'StackerEnsembleModel_CatBoost', 'StackerEnsembleModel_RF'}
+Bagging used: True  (with 8 folds)
+Multi-layer stack-ensembling used: True  (with 3 levels)
+Feature Metadata (Processed):
+(raw dtype, special dtypes):
+('category', [])             : 2 | ['season', 'weather']
+('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+('int', [])                  : 2 | ['humidity', 'hour']
+('int', ['bool'])            : 2 | ['holiday', 'workingday']
+('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+*** End of fit() summary ***</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.10/dist-packages/autogluon/core/utils/plots.py:138: UserWarning: AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"
+  warnings.warn('AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"')</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="95">
+<pre><code>{'model_types': {'KNeighborsUnif_BAG_L1': 'StackerEnsembleModel_KNN',
+  'KNeighborsDist_BAG_L1': 'StackerEnsembleModel_KNN',
+  'LightGBMXT_BAG_L1': 'StackerEnsembleModel_LGB',
+  'LightGBM_BAG_L1': 'StackerEnsembleModel_LGB',
+  'RandomForestMSE_BAG_L1': 'StackerEnsembleModel_RF',
+  'CatBoost_BAG_L1': 'StackerEnsembleModel_CatBoost',
+  'WeightedEnsemble_L2': 'WeightedEnsembleModel',
+  'LightGBMXT_BAG_L2': 'StackerEnsembleModel_LGB',
+  'LightGBM_BAG_L2': 'StackerEnsembleModel_LGB',
+  'RandomForestMSE_BAG_L2': 'StackerEnsembleModel_RF',
+  'WeightedEnsemble_L3': 'WeightedEnsembleModel'},
+ 'model_performance': {'KNeighborsUnif_BAG_L1': 0.6857197008702899,
+  'KNeighborsDist_BAG_L1': 0.7843047406609882,
+  'LightGBMXT_BAG_L1': 0.9638025771530867,
+  'LightGBM_BAG_L1': 0.9649265782277123,
+  'RandomForestMSE_BAG_L1': 0.9549307335507177,
+  'CatBoost_BAG_L1': 0.951849543275297,
+  'WeightedEnsemble_L2': 0.9681075327164346,
+  'LightGBMXT_BAG_L2': 0.9703027791837092,
+  'LightGBM_BAG_L2': 0.9716053234059946,
+  'RandomForestMSE_BAG_L2': 0.9691654897002968,
+  'WeightedEnsemble_L3': 0.9719297420292408},
+ 'model_best': 'WeightedEnsemble_L3',
+ 'model_paths': {'KNeighborsUnif_BAG_L1': 'AutogluonModels/ag-20230526_080624/models/KNeighborsUnif_BAG_L1/',
+  'KNeighborsDist_BAG_L1': 'AutogluonModels/ag-20230526_080624/models/KNeighborsDist_BAG_L1/',
+  'LightGBMXT_BAG_L1': 'AutogluonModels/ag-20230526_080624/models/LightGBMXT_BAG_L1/',
+  'LightGBM_BAG_L1': 'AutogluonModels/ag-20230526_080624/models/LightGBM_BAG_L1/',
+  'RandomForestMSE_BAG_L1': 'AutogluonModels/ag-20230526_080624/models/RandomForestMSE_BAG_L1/',
+  'CatBoost_BAG_L1': 'AutogluonModels/ag-20230526_080624/models/CatBoost_BAG_L1/',
+  'WeightedEnsemble_L2': 'AutogluonModels/ag-20230526_080624/models/WeightedEnsemble_L2/',
+  'LightGBMXT_BAG_L2': 'AutogluonModels/ag-20230526_080624/models/LightGBMXT_BAG_L2/',
+  'LightGBM_BAG_L2': 'AutogluonModels/ag-20230526_080624/models/LightGBM_BAG_L2/',
+  'RandomForestMSE_BAG_L2': 'AutogluonModels/ag-20230526_080624/models/RandomForestMSE_BAG_L2/',
+  'WeightedEnsemble_L3': 'AutogluonModels/ag-20230526_080624/models/WeightedEnsemble_L3/'},
+ 'model_fit_times': {'KNeighborsUnif_BAG_L1': 0.04635930061340332,
+  'KNeighborsDist_BAG_L1': 0.05636906623840332,
+  'LightGBMXT_BAG_L1': 217.03785729408264,
+  'LightGBM_BAG_L1': 84.31245446205139,
+  'RandomForestMSE_BAG_L1': 19.8968825340271,
+  'CatBoost_BAG_L1': 75.17608904838562,
+  'WeightedEnsemble_L2': 0.8642807006835938,
+  'LightGBMXT_BAG_L2': 71.89829659461975,
+  'LightGBM_BAG_L2': 48.12589120864868,
+  'RandomForestMSE_BAG_L2': 46.611276149749756,
+  'WeightedEnsemble_L3': 0.23754644393920898},
+ 'model_pred_times': {'KNeighborsUnif_BAG_L1': 0.0447087287902832,
+  'KNeighborsDist_BAG_L1': 0.055266618728637695,
+  'LightGBMXT_BAG_L1': 61.06697869300842,
+  'LightGBM_BAG_L1': 11.519503593444824,
+  'RandomForestMSE_BAG_L1': 1.1807301044464111,
+  'CatBoost_BAG_L1': 0.20925426483154297,
+  'WeightedEnsemble_L2': 0.0017576217651367188,
+  'LightGBMXT_BAG_L2': 3.85271954536438,
+  'LightGBM_BAG_L2': 0.4586143493652344,
+  'RandomForestMSE_BAG_L2': 0.8420944213867188,
+  'WeightedEnsemble_L3': 0.0011401176452636719},
+ 'num_bag_folds': 8,
+ 'max_stack_level': 3,
+ 'model_hyperparams': {'KNeighborsUnif_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'KNeighborsDist_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'LightGBMXT_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBM_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForestMSE_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'CatBoost_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'WeightedEnsemble_L2': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBMXT_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBM_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForestMSE_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'WeightedEnsemble_L3': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True}},
+ 'leaderboard':                      model  score_val  pred_time_val    fit_time  \
+ 0      WeightedEnsemble_L3   0.971930      79.231010  563.399022   
+ 1          LightGBM_BAG_L2   0.971605      74.535056  444.651903   
+ 2        LightGBMXT_BAG_L2   0.970303      77.929162  468.424308   
+ 3   RandomForestMSE_BAG_L2   0.969165      74.918536  443.137288   
+ 4      WeightedEnsemble_L2   0.968108      73.824237  322.167844   
+ 5          LightGBM_BAG_L1   0.964927      11.519504   84.312454   
+ 6        LightGBMXT_BAG_L1   0.963803      61.066979  217.037857   
+ 7   RandomForestMSE_BAG_L1   0.954931       1.180730   19.896883   
+ 8          CatBoost_BAG_L1   0.951850       0.209254   75.176089   
+ 9    KNeighborsDist_BAG_L1   0.784305       0.055267    0.056369   
+ 10   KNeighborsUnif_BAG_L1   0.685720       0.044709    0.046359   
+ 
+     pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  \
+ 0                 0.001140           0.237546            3       True   
+ 1                 0.458614          48.125891            2       True   
+ 2                 3.852720          71.898297            2       True   
+ 3                 0.842094          46.611276            2       True   
+ 4                 0.001758           0.864281            2       True   
+ 5                11.519504          84.312454            1       True   
+ 6                61.066979         217.037857            1       True   
+ 7                 1.180730          19.896883            1       True   
+ 8                 0.209254          75.176089            1       True   
+ 9                 0.055267           0.056369            1       True   
+ 10                0.044709           0.046359            1       True   
+ 
+     fit_order  
+ 0          11  
+ 1           9  
+ 2           8  
+ 3          10  
+ 4           7  
+ 5           4  
+ 6           3  
+ 7           5  
+ 8           6  
+ 9           2  
+ 10          1  }</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="6ebd871f-007f-4ba7-8c3a-12f744cfbe43">
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Remember to set all negative values to zero</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>predictions <span class="op">=</span> predictor_new_hpo.predict(test)</span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>predictions[predictions.lt(<span class="dv">0</span>)] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>predictions.describe()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="96">
+<pre><code>count    6493.000000
+mean      162.723816
+std       145.281219
+min         2.635452
+25%        48.570057
+50%       124.284653
+75%       232.908966
+max       814.439636
+Name: count, dtype: float64</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Same submitting predictions</span></span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>submission_new_hpo <span class="op">=</span> submission</span>
+<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a>submission_new_hpo[<span class="st">"count"</span>] <span class="op">=</span> predictions</span>
+<span id="cb77-4"><a href="#cb77-4" aria-hidden="true" tabindex="-1"></a>submission_new_hpo.to_csv(<span class="st">"submission_new_hpo.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="c52ae298-6d53-4cfa-83c5-38690c66c8a8">
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submit <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">-</span>f submission_new_hpo.csv <span class="op">-</span>m <span class="st">"new features with hyperparameters"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>100% 188k/188k [00:01&lt;00:00, 108kB/s]
+Successfully submitted to Bike Sharing Demand</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="81e0b169-f58e-4cdb-e200-8597337a2015">
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submissions <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">|</span> tail <span class="op">-</span>n <span class="op">+</span><span class="dv">1</span> <span class="op">|</span> head <span class="op">-</span>n <span class="dv">6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fileName                     date                 description                             status    publicScore  privateScore  
+---------------------------  -------------------  --------------------------------------  --------  -----------  ------------  
+submission_new_hpo.csv       2023-05-26 08:19:14  new features with hyperparameters       complete  0.61537      0.61537       
+submission_new_features.csv  2023-05-26 08:06:23  new features                            complete  0.63415      0.63415       
+submission.csv               2023-05-26 07:53:31  first raw submission                    complete  1.81590      1.81590       
+submission.csv               2023-05-26 06:48:23  gradient boosting with GridSearchCV     complete  0.38863      0.38863       </code></pre>
+</div>
+</div>
+<section id="new-score-of-0.64431" class="level4">
+<h4 class="anchored" data-anchor-id="new-score-of-0.64431">New Score of <span class="math inline">\(0.64431\)</span></h4>
+<div class="cell" data-outputid="af90f7bb-039d-4a5a-c694-a2e7b969c1f7">
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>predictor_new_hpo_1 <span class="op">=</span> TabularPredictor(label<span class="op">=</span><span class="st">'count'</span>,</span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a>                             problem_type<span class="op">=</span><span class="st">'regression'</span>,</span>
+<span id="cb82-3"><a href="#cb82-3" aria-hidden="true" tabindex="-1"></a>                             learner_kwargs <span class="op">=</span> {<span class="st">'ignored_columns'</span>: [<span class="st">'casual'</span>, <span class="st">'registered'</span>]}</span>
+<span id="cb82-4"><a href="#cb82-4" aria-hidden="true" tabindex="-1"></a>                             ).fit(train_data<span class="op">=</span>train, time_limit<span class="op">=</span><span class="dv">1200</span>, presets<span class="op">=</span><span class="st">"best_quality"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No path specified. Models will be saved in: "AutogluonModels/ag-20230526_081916/"
+Presets specified: ['best_quality']
+Stack configuration (auto_stack=True): num_stack_levels=1, num_bag_folds=8, num_bag_sets=20
+Beginning AutoGluon training ... Time limit = 1200s
+AutoGluon will save models to "AutogluonModels/ag-20230526_081916/"
+AutoGluon Version:  0.7.0
+Python Version:     3.10.11
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP Sat Apr 29 09:15:28 UTC 2023
+Train Data Rows:    10886
+Train Data Columns: 12
+Label Column: count
+Preprocessing data ...
+Using Feature Generators to preprocess the data ...
+Dropping user-specified ignored columns: ['casual', 'registered']
+Fitting AutoMLPipelineFeatureGenerator...
+    Available Memory:                    10929.8 MB
+    Train Data (Original)  Memory Usage: 0.57 MB (0.0% of available memory)
+    Inferring data type of each feature based on column values. Set feature_metadata_in to manually specify special dtypes of the features.
+    Stage 1 Generators:
+        Fitting AsTypeFeatureGenerator...
+            Note: Converting 2 features to boolean dtype as they only contain 2 unique values.
+    Stage 2 Generators:
+        Fitting FillNaFeatureGenerator...
+    Stage 3 Generators:
+        Fitting IdentityFeatureGenerator...
+        Fitting CategoryFeatureGenerator...
+            Fitting CategoryMemoryMinimizeFeatureGenerator...
+        Fitting DatetimeFeatureGenerator...
+    Stage 4 Generators:
+        Fitting DropUniqueFeatureGenerator...
+    Types of features in original data (raw dtype, special dtypes):
+        ('category', []) : 4 | ['season', 'holiday', 'workingday', 'weather']
+        ('datetime', []) : 1 | ['datetime']
+        ('float', [])    : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])      : 2 | ['humidity', 'hour']
+    Types of features in processed data (raw dtype, special dtypes):
+        ('category', [])             : 2 | ['season', 'weather']
+        ('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])                  : 2 | ['humidity', 'hour']
+        ('int', ['bool'])            : 2 | ['holiday', 'workingday']
+        ('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+    0.3s = Fit runtime
+    10 features in original data used to generate 14 features in processed data.
+    Train Data (Processed) Memory Usage: 0.92 MB (0.0% of available memory)
+Data preprocessing and feature engineering runtime = 0.43s ...
+AutoGluon will gauge predictive performance using evaluation metric: 'root_mean_squared_error'
+    This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+    To change this, specify the eval_metric parameter of Predictor()
+AutoGluon will fit 2 stack levels (L1 to L2) ...
+Fitting 11 L1 models ...
+Fitting model: KNeighborsUnif_BAG_L1 ... Training model for up to 799.51s of the 1199.56s of remaining time.
+    -101.5462    = Validation score   (-root_mean_squared_error)
+    0.08s    = Training   runtime
+    0.06s    = Validation runtime
+Fitting model: KNeighborsDist_BAG_L1 ... Training model for up to 799.29s of the 1199.34s of remaining time.
+    -84.1251     = Validation score   (-root_mean_squared_error)
+    0.05s    = Training   runtime
+    0.05s    = Validation runtime
+Fitting model: LightGBMXT_BAG_L1 ... Training model for up to 799.14s of the 1199.18s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -34.4573     = Validation score   (-root_mean_squared_error)
+    155.85s  = Training   runtime
+    37.86s   = Validation runtime
+Fitting model: LightGBM_BAG_L1 ... Training model for up to 633.0s of the 1033.05s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -33.9196     = Validation score   (-root_mean_squared_error)
+    81.75s   = Training   runtime
+    10.83s   = Validation runtime
+Fitting model: RandomForestMSE_BAG_L1 ... Training model for up to 543.8s of the 943.84s of remaining time.
+    -38.4543     = Validation score   (-root_mean_squared_error)
+    21.83s   = Training   runtime
+    0.78s    = Validation runtime
+Fitting model: CatBoost_BAG_L1 ... Training model for up to 519.91s of the 919.96s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -33.7965     = Validation score   (-root_mean_squared_error)
+    439.88s  = Training   runtime
+    0.44s    = Validation runtime
+Fitting model: ExtraTreesMSE_BAG_L1 ... Training model for up to 73.58s of the 473.63s of remaining time.
+    -38.3261     = Validation score   (-root_mean_squared_error)
+    11.27s   = Training   runtime
+    0.73s    = Validation runtime
+Fitting model: NeuralNetFastAI_BAG_L1 ... Training model for up to 60.67s of the 460.72s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -98.5356     = Validation score   (-root_mean_squared_error)
+    89.0s    = Training   runtime
+    0.64s    = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L2 ... Training model for up to 360.0s of the 367.58s of remaining time.
+    -32.1383     = Validation score   (-root_mean_squared_error)
+    0.7s     = Training   runtime
+    0.0s     = Validation runtime
+Fitting 9 L2 models ...
+Fitting model: LightGBMXT_BAG_L2 ... Training model for up to 366.85s of the 366.83s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -31.1139     = Validation score   (-root_mean_squared_error)
+    59.33s   = Training   runtime
+    2.02s    = Validation runtime
+Fitting model: LightGBM_BAG_L2 ... Training model for up to 297.55s of the 297.53s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -30.5871     = Validation score   (-root_mean_squared_error)
+    48.54s   = Training   runtime
+    0.56s    = Validation runtime
+Fitting model: RandomForestMSE_BAG_L2 ... Training model for up to 242.09s of the 242.07s of remaining time.
+    -31.5452     = Validation score   (-root_mean_squared_error)
+    74.97s   = Training   runtime
+    0.79s    = Validation runtime
+Fitting model: CatBoost_BAG_L2 ... Training model for up to 165.35s of the 165.34s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    -30.5061     = Validation score   (-root_mean_squared_error)
+    148.01s  = Training   runtime
+    0.24s    = Validation runtime
+Fitting model: ExtraTreesMSE_BAG_L2 ... Training model for up to 12.82s of the 12.79s of remaining time.
+    -31.3577     = Validation score   (-root_mean_squared_error)
+    17.92s   = Training   runtime
+    0.88s    = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L3 ... Training model for up to 360.0s of the -7.19s of remaining time.
+    -30.1995     = Validation score   (-root_mean_squared_error)
+    0.34s    = Training   runtime
+    0.0s     = Validation runtime
+AutoGluon training complete, total runtime = 1207.6s ... Best model: "WeightedEnsemble_L3"
+TabularPredictor saved. To load, use: predictor = TabularPredictor.load("AutogluonModels/ag-20230526_081916/")</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>predictions <span class="op">=</span> predictor_new_hpo_1.predict(test)</span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>predictions[predictions.lt(<span class="dv">0</span>)] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a>submission_new_hpo_1 <span class="op">=</span> submission</span>
+<span id="cb84-5"><a href="#cb84-5" aria-hidden="true" tabindex="-1"></a>submission_new_hpo_1[<span class="st">"count"</span>] <span class="op">=</span> predictions</span>
+<span id="cb84-6"><a href="#cb84-6" aria-hidden="true" tabindex="-1"></a>submission_new_hpo_1.to_csv(<span class="st">"submission_new_hpo_1.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="bd02362c-a54f-420a-9658-a5105dabc2b1">
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submit <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">-</span>f submission_new_hpo_1.csv <span class="op">-</span>m <span class="st">"new features with increased time limit"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>100% 188k/188k [00:02&lt;00:00, 71.2kB/s]
+Successfully submitted to Bike Sharing Demand</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="36e127d1-64f1-42ae-f951-dff28a68af9c">
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submissions <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">|</span> tail <span class="op">-</span>n <span class="op">+</span><span class="dv">1</span> <span class="op">|</span> head <span class="op">-</span>n <span class="dv">6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fileName                     date                 description                             status    publicScore  privateScore  
+---------------------------  -------------------  --------------------------------------  --------  -----------  ------------  
+submission_new_hpo_1.csv     2023-05-26 08:41:56  new features with increased time limit  complete  0.67834      0.67834       
+submission_new_hpo.csv       2023-05-26 08:19:14  new features with hyperparameters       complete  0.61537      0.61537       
+submission_new_features.csv  2023-05-26 08:06:23  new features                            complete  0.63415      0.63415       
+submission.csv               2023-05-26 07:53:31  first raw submission                    complete  1.81590      1.81590       </code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="c6f707c0-69a4-43f1-ea9b-dcb7fd45ddff">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>predictor_new_hpo_1.fit_summary()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>*** Summary of fit() ***
+Estimated performance of each model:
+                     model   score_val  pred_time_val     fit_time  pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  fit_order
+0      WeightedEnsemble_L3  -30.199478      55.004992  1130.887688                0.001097           0.341997            3       True         15
+1          CatBoost_BAG_L2  -30.506111      51.629967   947.708823                0.235660         148.008132            2       True         13
+2          LightGBM_BAG_L2  -30.587053      51.955949   848.236876                0.561642          48.536185            2       True         11
+3        LightGBMXT_BAG_L2  -31.113891      53.417851   859.029948                2.023544          59.329256            2       True         10
+4     ExtraTreesMSE_BAG_L2  -31.357742      52.278236   817.622905                0.883929          17.922213            2       True         14
+5   RandomForestMSE_BAG_L2  -31.545151      52.183049   874.672117                0.788742          74.971426            2       True         12
+6      WeightedEnsemble_L2  -32.138253      49.964548   700.055691                0.000962           0.699998            2       True          9
+7          CatBoost_BAG_L1  -33.796546       0.438023   439.876434                0.438023         439.876434            1       True          6
+8          LightGBM_BAG_L1  -33.919639      10.833587    81.750697               10.833587          81.750697            1       True          4
+9        LightGBMXT_BAG_L1  -34.457274      37.859420   155.846566               37.859420         155.846566            1       True          3
+10    ExtraTreesMSE_BAG_L1  -38.326129       0.727778    11.269694                0.727778          11.269694            1       True          7
+11  RandomForestMSE_BAG_L1  -38.454338       0.778508    21.834038                0.778508          21.834038            1       True          5
+12   KNeighborsDist_BAG_L1  -84.125061       0.054047     0.047958                0.054047           0.047958            1       True          2
+13  NeuralNetFastAI_BAG_L1  -98.535595       0.644196    88.997152                0.644196          88.997152            1       True          8
+14   KNeighborsUnif_BAG_L1 -101.546199       0.058748     0.078153                0.058748           0.078153            1       True          1
+Number of models trained: 15
+Types of models trained:
+{'StackerEnsembleModel_NNFastAiTabular', 'WeightedEnsembleModel', 'StackerEnsembleModel_XT', 'StackerEnsembleModel_KNN', 'StackerEnsembleModel_LGB', 'StackerEnsembleModel_CatBoost', 'StackerEnsembleModel_RF'}
+Bagging used: True  (with 8 folds)
+Multi-layer stack-ensembling used: True  (with 3 levels)
+Feature Metadata (Processed):
+(raw dtype, special dtypes):
+('category', [])             : 2 | ['season', 'weather']
+('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+('int', [])                  : 2 | ['humidity', 'hour']
+('int', ['bool'])            : 2 | ['holiday', 'workingday']
+('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+*** End of fit() summary ***</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.10/dist-packages/autogluon/core/utils/plots.py:138: UserWarning: AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"
+  warnings.warn('AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"')</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="104">
+<pre><code>{'model_types': {'KNeighborsUnif_BAG_L1': 'StackerEnsembleModel_KNN',
+  'KNeighborsDist_BAG_L1': 'StackerEnsembleModel_KNN',
+  'LightGBMXT_BAG_L1': 'StackerEnsembleModel_LGB',
+  'LightGBM_BAG_L1': 'StackerEnsembleModel_LGB',
+  'RandomForestMSE_BAG_L1': 'StackerEnsembleModel_RF',
+  'CatBoost_BAG_L1': 'StackerEnsembleModel_CatBoost',
+  'ExtraTreesMSE_BAG_L1': 'StackerEnsembleModel_XT',
+  'NeuralNetFastAI_BAG_L1': 'StackerEnsembleModel_NNFastAiTabular',
+  'WeightedEnsemble_L2': 'WeightedEnsembleModel',
+  'LightGBMXT_BAG_L2': 'StackerEnsembleModel_LGB',
+  'LightGBM_BAG_L2': 'StackerEnsembleModel_LGB',
+  'RandomForestMSE_BAG_L2': 'StackerEnsembleModel_RF',
+  'CatBoost_BAG_L2': 'StackerEnsembleModel_CatBoost',
+  'ExtraTreesMSE_BAG_L2': 'StackerEnsembleModel_XT',
+  'WeightedEnsemble_L3': 'WeightedEnsembleModel'},
+ 'model_performance': {'KNeighborsUnif_BAG_L1': -101.54619908446061,
+  'KNeighborsDist_BAG_L1': -84.12506123181602,
+  'LightGBMXT_BAG_L1': -34.457273921492806,
+  'LightGBM_BAG_L1': -33.919639163586254,
+  'RandomForestMSE_BAG_L1': -38.4543378929385,
+  'CatBoost_BAG_L1': -33.79654592051108,
+  'ExtraTreesMSE_BAG_L1': -38.326129123608844,
+  'NeuralNetFastAI_BAG_L1': -98.53559486816147,
+  'WeightedEnsemble_L2': -32.13825298402737,
+  'LightGBMXT_BAG_L2': -31.11389114852587,
+  'LightGBM_BAG_L2': -30.587053137056813,
+  'RandomForestMSE_BAG_L2': -31.54515115135457,
+  'CatBoost_BAG_L2': -30.506111126539395,
+  'ExtraTreesMSE_BAG_L2': -31.35774189524669,
+  'WeightedEnsemble_L3': -30.199477928931884},
+ 'model_best': 'WeightedEnsemble_L3',
+ 'model_paths': {'KNeighborsUnif_BAG_L1': 'AutogluonModels/ag-20230526_081916/models/KNeighborsUnif_BAG_L1/',
+  'KNeighborsDist_BAG_L1': 'AutogluonModels/ag-20230526_081916/models/KNeighborsDist_BAG_L1/',
+  'LightGBMXT_BAG_L1': 'AutogluonModels/ag-20230526_081916/models/LightGBMXT_BAG_L1/',
+  'LightGBM_BAG_L1': 'AutogluonModels/ag-20230526_081916/models/LightGBM_BAG_L1/',
+  'RandomForestMSE_BAG_L1': 'AutogluonModels/ag-20230526_081916/models/RandomForestMSE_BAG_L1/',
+  'CatBoost_BAG_L1': 'AutogluonModels/ag-20230526_081916/models/CatBoost_BAG_L1/',
+  'ExtraTreesMSE_BAG_L1': 'AutogluonModels/ag-20230526_081916/models/ExtraTreesMSE_BAG_L1/',
+  'NeuralNetFastAI_BAG_L1': 'AutogluonModels/ag-20230526_081916/models/NeuralNetFastAI_BAG_L1/',
+  'WeightedEnsemble_L2': 'AutogluonModels/ag-20230526_081916/models/WeightedEnsemble_L2/',
+  'LightGBMXT_BAG_L2': 'AutogluonModels/ag-20230526_081916/models/LightGBMXT_BAG_L2/',
+  'LightGBM_BAG_L2': 'AutogluonModels/ag-20230526_081916/models/LightGBM_BAG_L2/',
+  'RandomForestMSE_BAG_L2': 'AutogluonModels/ag-20230526_081916/models/RandomForestMSE_BAG_L2/',
+  'CatBoost_BAG_L2': 'AutogluonModels/ag-20230526_081916/models/CatBoost_BAG_L2/',
+  'ExtraTreesMSE_BAG_L2': 'AutogluonModels/ag-20230526_081916/models/ExtraTreesMSE_BAG_L2/',
+  'WeightedEnsemble_L3': 'AutogluonModels/ag-20230526_081916/models/WeightedEnsemble_L3/'},
+ 'model_fit_times': {'KNeighborsUnif_BAG_L1': 0.07815313339233398,
+  'KNeighborsDist_BAG_L1': 0.0479578971862793,
+  'LightGBMXT_BAG_L1': 155.84656643867493,
+  'LightGBM_BAG_L1': 81.7506971359253,
+  'RandomForestMSE_BAG_L1': 21.83403754234314,
+  'CatBoost_BAG_L1': 439.87643361091614,
+  'ExtraTreesMSE_BAG_L1': 11.269693851470947,
+  'NeuralNetFastAI_BAG_L1': 88.99715161323547,
+  'WeightedEnsemble_L2': 0.6999983787536621,
+  'LightGBMXT_BAG_L2': 59.32925629615784,
+  'LightGBM_BAG_L2': 48.5361852645874,
+  'RandomForestMSE_BAG_L2': 74.97142624855042,
+  'CatBoost_BAG_L2': 148.008131980896,
+  'ExtraTreesMSE_BAG_L2': 17.922213315963745,
+  'WeightedEnsemble_L3': 0.3419969081878662},
+ 'model_pred_times': {'KNeighborsUnif_BAG_L1': 0.05874824523925781,
+  'KNeighborsDist_BAG_L1': 0.0540468692779541,
+  'LightGBMXT_BAG_L1': 37.85941958427429,
+  'LightGBM_BAG_L1': 10.833586931228638,
+  'RandomForestMSE_BAG_L1': 0.7785084247589111,
+  'CatBoost_BAG_L1': 0.43802332878112793,
+  'ExtraTreesMSE_BAG_L1': 0.727778434753418,
+  'NeuralNetFastAI_BAG_L1': 0.644195556640625,
+  'WeightedEnsemble_L2': 0.0009624958038330078,
+  'LightGBMXT_BAG_L2': 2.0235435962677,
+  'LightGBM_BAG_L2': 0.5616419315338135,
+  'RandomForestMSE_BAG_L2': 0.7887415885925293,
+  'CatBoost_BAG_L2': 0.23565983772277832,
+  'ExtraTreesMSE_BAG_L2': 0.8839290142059326,
+  'WeightedEnsemble_L3': 0.0010974407196044922},
+ 'num_bag_folds': 8,
+ 'max_stack_level': 3,
+ 'model_hyperparams': {'KNeighborsUnif_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'KNeighborsDist_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'LightGBMXT_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBM_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForestMSE_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'CatBoost_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'ExtraTreesMSE_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'NeuralNetFastAI_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'WeightedEnsemble_L2': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBMXT_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'LightGBM_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForestMSE_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'CatBoost_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'ExtraTreesMSE_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'WeightedEnsemble_L3': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True}},
+ 'leaderboard':                      model   score_val  pred_time_val     fit_time  \
+ 0      WeightedEnsemble_L3  -30.199478      55.004992  1130.887688   
+ 1          CatBoost_BAG_L2  -30.506111      51.629967   947.708823   
+ 2          LightGBM_BAG_L2  -30.587053      51.955949   848.236876   
+ 3        LightGBMXT_BAG_L2  -31.113891      53.417851   859.029948   
+ 4     ExtraTreesMSE_BAG_L2  -31.357742      52.278236   817.622905   
+ 5   RandomForestMSE_BAG_L2  -31.545151      52.183049   874.672117   
+ 6      WeightedEnsemble_L2  -32.138253      49.964548   700.055691   
+ 7          CatBoost_BAG_L1  -33.796546       0.438023   439.876434   
+ 8          LightGBM_BAG_L1  -33.919639      10.833587    81.750697   
+ 9        LightGBMXT_BAG_L1  -34.457274      37.859420   155.846566   
+ 10    ExtraTreesMSE_BAG_L1  -38.326129       0.727778    11.269694   
+ 11  RandomForestMSE_BAG_L1  -38.454338       0.778508    21.834038   
+ 12   KNeighborsDist_BAG_L1  -84.125061       0.054047     0.047958   
+ 13  NeuralNetFastAI_BAG_L1  -98.535595       0.644196    88.997152   
+ 14   KNeighborsUnif_BAG_L1 -101.546199       0.058748     0.078153   
+ 
+     pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  \
+ 0                 0.001097           0.341997            3       True   
+ 1                 0.235660         148.008132            2       True   
+ 2                 0.561642          48.536185            2       True   
+ 3                 2.023544          59.329256            2       True   
+ 4                 0.883929          17.922213            2       True   
+ 5                 0.788742          74.971426            2       True   
+ 6                 0.000962           0.699998            2       True   
+ 7                 0.438023         439.876434            1       True   
+ 8                10.833587          81.750697            1       True   
+ 9                37.859420         155.846566            1       True   
+ 10                0.727778          11.269694            1       True   
+ 11                0.778508          21.834038            1       True   
+ 12                0.054047           0.047958            1       True   
+ 13                0.644196          88.997152            1       True   
+ 14                0.058748           0.078153            1       True   
+ 
+     fit_order  
+ 0          15  
+ 1          13  
+ 2          11  
+ 3          10  
+ 4          14  
+ 5          12  
+ 6           9  
+ 7           6  
+ 8           4  
+ 9           3  
+ 10          7  
+ 11          5  
+ 12          2  
+ 13          8  
+ 14          1  }</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="step-7-write-a-report" class="level2">
+<h2 class="anchored" data-anchor-id="step-7-write-a-report">Step 7: Write a Report</h2>
+<section id="refer-to-the-markdown-file-for-the-full-report" class="level3">
+<h3 class="anchored" data-anchor-id="refer-to-the-markdown-file-for-the-full-report">Refer to the markdown file for the full report</h3>
+</section>
+<section id="creating-plots-and-table-for-report" class="level3">
+<h3 class="anchored" data-anchor-id="creating-plots-and-table-for-report">Creating plots and table for report</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a>sns.set_theme()</span>
+<span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format<span class="op">=</span><span class="st">'retina'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-jupyter="{&quot;source_hidden&quot;:true}" data-outputid="dad98109-2ab0-4a78-d93d-e3a845d8a119">
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Taking the top model score from each training run and creating a line plot to show improvement</span></span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a><span class="co"># You can create these in the notebook and save them to PNG or use some other tool (e.g. google sheets, excel)</span></span>
+<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb94-4"><a href="#cb94-4" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb94-5"><a href="#cb94-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"model"</span>: [<span class="st">"initial"</span>, <span class="st">"add_features"</span>, <span class="st">"hpo_1"</span>],</span>
+<span id="cb94-6"><a href="#cb94-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"score"</span>: [<span class="op">-</span><span class="fl">52.964901</span>, <span class="op">-</span><span class="fl">30.409717</span>, <span class="op">-</span><span class="fl">30.004796</span>]</span>
+<span id="cb94-7"><a href="#cb94-7" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb94-8"><a href="#cb94-8" aria-hidden="true" tabindex="-1"></a>).plot(x<span class="op">=</span><span class="st">"model"</span>, y<span class="op">=</span><span class="st">"score"</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>)).get_figure()</span>
+<span id="cb94-9"><a href="#cb94-9" aria-hidden="true" tabindex="-1"></a>fig.savefig(<span class="st">'model_train_score.png'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-53-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-outputid="8c483464-2a79-4eda-e02e-6dd639f18859">
+<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Take the 3 kaggle scores and creating a line plot to show improvement</span></span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"test_eval"</span>: [<span class="st">"initial"</span>, <span class="st">"add_features"</span>, <span class="st">"hpo"</span>, <span class="st">"hpo_1"</span>],</span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"score"</span>: [<span class="fl">1.78725</span>, <span class="fl">0.63239</span>, <span class="fl">0.64431</span>, <span class="fl">0.67070</span>]</span>
+<span id="cb95-6"><a href="#cb95-6" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb95-7"><a href="#cb95-7" aria-hidden="true" tabindex="-1"></a>).plot(x<span class="op">=</span><span class="st">"test_eval"</span>, y<span class="op">=</span><span class="st">"score"</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>)).get_figure()</span>
+<span id="cb95-8"><a href="#cb95-8" aria-hidden="true" tabindex="-1"></a>fig.savefig(<span class="st">'model_test_score.png'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-54-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="hyperparameter-table" class="level3">
+<h3 class="anchored" data-anchor-id="hyperparameter-table">Hyperparameter table</h3>
+<div class="cell" data-outputid="b6a0deb3-fe4c-47ba-f92c-b96e550da497">
+<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The 3 hyperparameters we tuned with the kaggle score as the result</span></span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a>pd.DataFrame({</span>
+<span id="cb96-3"><a href="#cb96-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"model"</span>: [<span class="st">"initial"</span>, <span class="st">"add_features"</span>, <span class="st">"hpo"</span>, <span class="st">"hpo_1"</span>],</span>
+<span id="cb96-4"><a href="#cb96-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"time_limit"</span>: [<span class="dv">600</span>, <span class="dv">600</span>, <span class="dv">600</span>, <span class="dv">1200</span>],</span>
+<span id="cb96-5"><a href="#cb96-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"eval_metric"</span>: [<span class="st">"root_mean_squared_error"</span>, <span class="st">"root_mean_squared_error"</span>, <span class="st">"r2"</span>, <span class="st">"root_mean_squared_error"</span>],</span>
+<span id="cb96-6"><a href="#cb96-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"score"</span>: [<span class="fl">1.78725</span>, <span class="fl">0.63239</span>, <span class="fl">0.64431</span>, <span class="fl">0.67070</span>]</span>
+<span id="cb96-7"><a href="#cb96-7" aria-hidden="true" tabindex="-1"></a>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="107">
+
+  <div id="df-d013b644-7fdd-4439-8bf4-a1a87a963bcc">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model</th>
+<th data-quarto-table-cell-role="th">time_limit</th>
+<th data-quarto-table-cell-role="th">eval_metric</th>
+<th data-quarto-table-cell-role="th">score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>initial</td>
+<td>600</td>
+<td>root_mean_squared_error</td>
+<td>1.78725</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>add_features</td>
+<td>600</td>
+<td>root_mean_squared_error</td>
+<td>0.63239</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>hpo</td>
+<td>600</td>
+<td>r2</td>
+<td>0.64431</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>hpo_1</td>
+<td>1200</td>
+<td>root_mean_squared_error</td>
+<td>0.67070</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-d013b644-7fdd-4439-8bf4-a1a87a963bcc')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-d013b644-7fdd-4439-8bf4-a1a87a963bcc button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-d013b644-7fdd-4439-8bf4-a1a87a963bcc');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+</section>
+<section id="additional-charts" class="level3">
+<h3 class="anchored" data-anchor-id="additional-charts">Additional charts</h3>
+<div class="cell" data-outputid="d57b59f9-6896-4c17-d18c-9c47a89757cd">
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>predictor_new_features.leaderboard(silent<span class="op">=</span><span class="va">True</span>).plot(kind<span class="op">=</span><span class="st">"bar"</span>, x<span class="op">=</span><span class="st">"model"</span>, y<span class="op">=</span><span class="st">"score_val"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="115">
+<pre><code>&lt;Axes: xlabel='model'&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-56-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-outputid="dea6b692-2118-42af-dd4f-9f5871c66bca">
+<div class="sourceCode cell-code" id="cb99"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>predictor_new_hpo.leaderboard(silent<span class="op">=</span><span class="va">True</span>).plot(kind<span class="op">=</span><span class="st">"bar"</span>, x<span class="op">=</span><span class="st">"model"</span>, y<span class="op">=</span><span class="st">"score_val"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="116">
+<pre><code>&lt;Axes: xlabel='model'&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-57-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-outputid="e1e3b706-0b59-4f42-bd93-943ea1e1fe74">
+<div class="sourceCode cell-code" id="cb101"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a>predictor_new_hpo_1.leaderboard(silent<span class="op">=</span><span class="va">True</span>).plot(kind<span class="op">=</span><span class="st">"bar"</span>, x<span class="op">=</span><span class="st">"model"</span>, y<span class="op">=</span><span class="st">"score_val"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="117">
+<pre><code>&lt;Axes: xlabel='model'&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-58-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-outputid="5ac794ad-3c9a-490f-d1a3-69eb39d17666">
+<div class="sourceCode cell-code" id="cb103"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a>predictor.leaderboard(silent<span class="op">=</span><span class="va">True</span>).plot(kind<span class="op">=</span><span class="st">"bar"</span>, x<span class="op">=</span><span class="st">"model"</span>, y<span class="op">=</span><span class="st">"score_val"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="118">
+<pre><code>&lt;Axes: xlabel='model'&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_files/figure-html/cell-59-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

@@ -1,0 +1,10 @@
+setuptools
+wheel
+"mxnet<2.0.0"
+bokeh==2.0.1
+autogluon
+scikit-learn
+numpy
+pandas
+matplotlib
+seaborn
