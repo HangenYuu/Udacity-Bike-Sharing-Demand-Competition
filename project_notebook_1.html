@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.340">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Predict Bike Sharing Demand with AutoGluon (cont.)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="project_notebook_1_files/libs/clipboard/clipboard.min.js"></script>
+<script src="project_notebook_1_files/libs/quarto-html/quarto.js"></script>
+<script src="project_notebook_1_files/libs/quarto-html/popper.min.js"></script>
+<script src="project_notebook_1_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="project_notebook_1_files/libs/quarto-html/anchor.min.js"></script>
+<link href="project_notebook_1_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="project_notebook_1_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="project_notebook_1_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="project_notebook_1_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="project_notebook_1_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Predict Bike Sharing Demand with AutoGluon (cont.)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="notes" class="level1">
+<h1>Notes:</h1>
+<p>I ran the notebook in Google Colab so I need to install packages again each time. The notebook is meant to complement the main one, addressing the things that I have not implemented. The first steps will be relatively the same.</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create the .kaggle directory and an empty kaggle.json file</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>mkdir <span class="op">-</span>p <span class="op">/</span>root<span class="op">/</span>.kaggle</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>touch <span class="op">/</span>root<span class="op">/</span>.kaggle<span class="op">/</span>kaggle.json</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>chmod <span class="dv">600</span> <span class="op">/</span>root<span class="op">/</span>.kaggle<span class="op">/</span>kaggle.json</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fill in your user name and key from creating the kaggle account and API token file</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>kaggle_username <span class="op">=</span> <span class="st">""</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>kaggle_key <span class="op">=</span> <span class="st">""</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Save API token the kaggle.json file</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"/root/.kaggle/kaggle.json"</span>, <span class="st">"w"</span>) <span class="im">as</span> f:</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    f.write(json.dumps({<span class="st">"username"</span>: kaggle_username, <span class="st">"key"</span>: kaggle_key}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>capture</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install <span class="op">-</span>U pip</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install <span class="op">-</span>U setuptools wheel</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install <span class="op">-</span>U <span class="st">"mxnet&lt;2.0.0"</span> bokeh<span class="op">==</span><span class="fl">2.0.1</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install autogluon <span class="op">--</span>no<span class="op">-</span>cache<span class="op">-</span><span class="bu">dir</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="b788fde6-52c8-4653-b420-f2622802d5a9" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the dataset, it will be in a .zip file so you'll need to unzip it as well.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions download <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># If you already downloaded it you can use the -o command to overwrite the file</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>unzip <span class="op">-</span>o bike<span class="op">-</span>sharing<span class="op">-</span>demand.<span class="bu">zip</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Downloading bike-sharing-demand.zip to /content
+  0% 0.00/189k [00:00&lt;?, ?B/s]
+100% 189k/189k [00:00&lt;00:00, 74.7MB/s]
+Archive:  bike-sharing-demand.zip
+  inflating: sampleSubmission.csv    
+  inflating: test.csv                
+  inflating: train.csv               </code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> autogluon.tabular <span class="im">import</span> TabularPredictor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="a60f0ce3-d9e0-4f1a-9da8-f3ac216d7cf5" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the train dataset in pandas by reading the csv</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Set the parsing of the datetime column so you can use some of the `dt` features in pandas later</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> pd.read_csv(<span class="st">'train.csv'</span>, parse_dates<span class="op">=</span>[<span class="st">'datetime'</span>])</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>train.loc[:,<span class="st">'season'</span>:<span class="st">'weather'</span>] <span class="op">=</span> train.loc[:,<span class="st">'season'</span>:<span class="st">'weather'</span>].astype(<span class="st">'category'</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>train.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+
+  <div id="df-5baa0590-1df7-4723-a415-5b8473b86c3d">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">datetime</th>
+<th data-quarto-table-cell-role="th">season</th>
+<th data-quarto-table-cell-role="th">holiday</th>
+<th data-quarto-table-cell-role="th">workingday</th>
+<th data-quarto-table-cell-role="th">weather</th>
+<th data-quarto-table-cell-role="th">temp</th>
+<th data-quarto-table-cell-role="th">atemp</th>
+<th data-quarto-table-cell-role="th">humidity</th>
+<th data-quarto-table-cell-role="th">windspeed</th>
+<th data-quarto-table-cell-role="th">casual</th>
+<th data-quarto-table-cell-role="th">registered</th>
+<th data-quarto-table-cell-role="th">count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2011-01-01 00:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>81</td>
+<td>0.0</td>
+<td>3</td>
+<td>13</td>
+<td>16</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2011-01-01 01:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.02</td>
+<td>13.635</td>
+<td>80</td>
+<td>0.0</td>
+<td>8</td>
+<td>32</td>
+<td>40</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2011-01-01 02:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.02</td>
+<td>13.635</td>
+<td>80</td>
+<td>0.0</td>
+<td>5</td>
+<td>27</td>
+<td>32</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>2011-01-01 03:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>75</td>
+<td>0.0</td>
+<td>3</td>
+<td>10</td>
+<td>13</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>2011-01-01 04:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9.84</td>
+<td>14.395</td>
+<td>75</td>
+<td>0.0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-5baa0590-1df7-4723-a415-5b8473b86c3d')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-5baa0590-1df7-4723-a415-5b8473b86c3d button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-5baa0590-1df7-4723-a415-5b8473b86c3d');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="79144408-d2af-4e35-e0ac-41afe9c1c865" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>train.info()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 10886 entries, 0 to 10885
+Data columns (total 12 columns):
+ #   Column      Non-Null Count  Dtype         
+---  ------      --------------  -----         
+ 0   datetime    10886 non-null  datetime64[ns]
+ 1   season      10886 non-null  category      
+ 2   holiday     10886 non-null  category      
+ 3   workingday  10886 non-null  category      
+ 4   weather     10886 non-null  category      
+ 5   temp        10886 non-null  float64       
+ 6   atemp       10886 non-null  float64       
+ 7   humidity    10886 non-null  int64         
+ 8   windspeed   10886 non-null  float64       
+ 9   casual      10886 non-null  int64         
+ 10  registered  10886 non-null  int64         
+ 11  count       10886 non-null  int64         
+dtypes: category(4), datetime64[ns](1), float64(3), int64(4)
+memory usage: 723.7 KB</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="a44ced59-f59e-4de7-a268-d2741e1ab4e2" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simple output of the train dataset to view some of the min/max/varition of the dataset features.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>train.describe()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+
+  <div id="df-b7d07579-6b7e-4203-bac2-6d2d9512b326">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">temp</th>
+<th data-quarto-table-cell-role="th">atemp</th>
+<th data-quarto-table-cell-role="th">humidity</th>
+<th data-quarto-table-cell-role="th">windspeed</th>
+<th data-quarto-table-cell-role="th">casual</th>
+<th data-quarto-table-cell-role="th">registered</th>
+<th data-quarto-table-cell-role="th">count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">count</td>
+<td>10886.00000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+<td>10886.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">mean</td>
+<td>20.23086</td>
+<td>23.655084</td>
+<td>61.886460</td>
+<td>12.799395</td>
+<td>36.021955</td>
+<td>155.552177</td>
+<td>191.574132</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">std</td>
+<td>7.79159</td>
+<td>8.474601</td>
+<td>19.245033</td>
+<td>8.164537</td>
+<td>49.960477</td>
+<td>151.039033</td>
+<td>181.144454</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">min</td>
+<td>0.82000</td>
+<td>0.760000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>1.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">25%</td>
+<td>13.94000</td>
+<td>16.665000</td>
+<td>47.000000</td>
+<td>7.001500</td>
+<td>4.000000</td>
+<td>36.000000</td>
+<td>42.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">50%</td>
+<td>20.50000</td>
+<td>24.240000</td>
+<td>62.000000</td>
+<td>12.998000</td>
+<td>17.000000</td>
+<td>118.000000</td>
+<td>145.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">75%</td>
+<td>26.24000</td>
+<td>31.060000</td>
+<td>77.000000</td>
+<td>16.997900</td>
+<td>49.000000</td>
+<td>222.000000</td>
+<td>284.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">max</td>
+<td>41.00000</td>
+<td>45.455000</td>
+<td>100.000000</td>
+<td>56.996900</td>
+<td>367.000000</td>
+<td>886.000000</td>
+<td>977.000000</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-b7d07579-6b7e-4203-bac2-6d2d9512b326')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-b7d07579-6b7e-4203-bac2-6d2d9512b326 button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-b7d07579-6b7e-4203-bac2-6d2d9512b326');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="f902cb86-49f7-43ac-e1e7-f7f7a1475790" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the test pandas dataframe in pandas by reading the csv, remember to parse the datetime!</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> pd.read_csv(<span class="st">'test.csv'</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>test.loc[:,<span class="st">'datetime'</span>] <span class="op">=</span> pd.to_datetime(test.loc[:,<span class="st">'datetime'</span>])</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>test.loc[:,<span class="st">'season'</span>:<span class="st">'weather'</span>] <span class="op">=</span> test.loc[:,<span class="st">'season'</span>:<span class="st">'weather'</span>].astype(<span class="st">'category'</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>test.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>DeprecationWarning: In a future version, `df.iloc[:, i] = newvals` will attempt to set the values inplace instead of always setting a new array. To retain the old behavior, use either `df[df.columns[i]] = newvals` or, if columns are non-unique, `df.isetitem(i, newvals)`
+  test.loc[:,'datetime'] = pd.to_datetime(test.loc[:,'datetime'])</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+
+  <div id="df-0a62a9d3-dd77-48f5-b032-6513701521c0">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">datetime</th>
+<th data-quarto-table-cell-role="th">season</th>
+<th data-quarto-table-cell-role="th">holiday</th>
+<th data-quarto-table-cell-role="th">workingday</th>
+<th data-quarto-table-cell-role="th">weather</th>
+<th data-quarto-table-cell-role="th">temp</th>
+<th data-quarto-table-cell-role="th">atemp</th>
+<th data-quarto-table-cell-role="th">humidity</th>
+<th data-quarto-table-cell-role="th">windspeed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2011-01-20 00:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>11.365</td>
+<td>56</td>
+<td>26.0027</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2011-01-20 01:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>13.635</td>
+<td>56</td>
+<td>0.0000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2011-01-20 02:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>13.635</td>
+<td>56</td>
+<td>0.0000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>2011-01-20 03:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>12.880</td>
+<td>56</td>
+<td>11.0014</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>2011-01-20 04:00:00</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>10.66</td>
+<td>12.880</td>
+<td>56</td>
+<td>11.0014</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-0a62a9d3-dd77-48f5-b032-6513701521c0')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-0a62a9d3-dd77-48f5-b032-6513701521c0 button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-0a62a9d3-dd77-48f5-b032-6513701521c0');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="f4853a98-88d3-429c-a7d5-d25567ef69ff" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>test.info()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 6493 entries, 0 to 6492
+Data columns (total 9 columns):
+ #   Column      Non-Null Count  Dtype         
+---  ------      --------------  -----         
+ 0   datetime    6493 non-null   datetime64[ns]
+ 1   season      6493 non-null   category      
+ 2   holiday     6493 non-null   category      
+ 3   workingday  6493 non-null   category      
+ 4   weather     6493 non-null   category      
+ 5   temp        6493 non-null   float64       
+ 6   atemp       6493 non-null   float64       
+ 7   humidity    6493 non-null   int64         
+ 8   windspeed   6493 non-null   float64       
+dtypes: category(4), datetime64[ns](1), float64(3), int64(1)
+memory usage: 279.8 KB</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="f5493e01-1ede-4520-c740-740d312c571a" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Same thing as train and test dataset</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>submission <span class="op">=</span> pd.read_csv(<span class="st">'sampleSubmission.csv'</span>, parse_dates<span class="op">=</span>[<span class="st">'datetime'</span>])</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>submission.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+
+  <div id="df-5174f599-e42d-405c-a6f5-67fcf6f3f685">
+    <div class="colab-df-container">
+      <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">datetime</th>
+<th data-quarto-table-cell-role="th">count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2011-01-20 00:00:00</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2011-01-20 01:00:00</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2011-01-20 02:00:00</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>2011-01-20 03:00:00</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>2011-01-20 04:00:00</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+      <button class="colab-df-convert" onclick="convertToInteractive('df-5174f599-e42d-405c-a6f5-67fcf6f3f685')" title="Convert this dataframe to an interactive table." style="display:none;">
+        
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M0 0h24v24H0V0z" fill="none"></path>
+    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"></path><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"></path>
+  </svg>
+      </button>
+      
+  <style>
+    .colab-df-container {
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+      <script>
+        const buttonEl =
+          document.querySelector('#df-5174f599-e42d-405c-a6f5-67fcf6f3f685 button.colab-df-convert');
+        buttonEl.style.display =
+          google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+        async function convertToInteractive(key) {
+          const element = document.querySelector('#df-5174f599-e42d-405c-a6f5-67fcf6f3f685');
+          const dataTable =
+            await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                     [key], {});
+          if (!dataTable) return;
+
+          const docLinkHtml = 'Like what you see? Visit the ' +
+            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+            + ' to learn more about interactive tables.';
+          element.innerHTML = '';
+          dataTable['output_type'] = 'display_data';
+          await google.colab.output.renderOutput(dataTable, element);
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
+        }
+      </script>
+    </div>
+  </div>
+  
+</div>
+</div>
+<div class="cell" data-outputid="7d0f9daf-31fb-473d-aaf3-1e73ae0852eb" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>submission.info()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 6493 entries, 0 to 6492
+Data columns (total 2 columns):
+ #   Column    Non-Null Count  Dtype         
+---  ------    --------------  -----         
+ 0   datetime  6493 non-null   datetime64[ns]
+ 1   count     6493 non-null   int64         
+dtypes: datetime64[ns](1), int64(1)
+memory usage: 101.6 KB</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create a new feature</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'hour'</span>] <span class="op">=</span> train.datetime.dt.hour</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>test[<span class="st">'hour'</span>] <span class="op">=</span> test.datetime.dt.hour</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="step-3-train-a-model-using-autogluons-tabular-prediction" class="level2">
+<h2 class="anchored" data-anchor-id="step-3-train-a-model-using-autogluons-tabular-prediction">Step 3: Train a model using AutoGluon’s Tabular Prediction</h2>
+<p>Requirements: * We are prediting <code>count</code>, so it is the label we are setting. * Ignore <code>casual</code> and <code>registered</code> columns as they are also not present in the test dataset. * Use the <code>root_mean_squared_error</code> as the metric to use for evaluation. * Set a time limit of 10 minutes (600 seconds). * Use the preset <code>best_quality</code> to focus on creating the best model.</p>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>xgb_options <span class="op">=</span> {<span class="st">'booster'</span>:<span class="st">'dart'</span>, <span class="st">'eta'</span>:<span class="st">'0.1'</span>}</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>rf_options <span class="op">=</span> {<span class="st">'n_estimators'</span>:<span class="dv">200</span>}</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>time_limit <span class="op">=</span> <span class="dv">900</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>num_trials <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>search_strategy <span class="op">=</span> <span class="st">'auto'</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>hyperparameter_tune_kwargs <span class="op">=</span> {</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'num_trials'</span>: num_trials,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'scheduler'</span> : <span class="st">'local'</span>,</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'searcher'</span>: search_strategy,</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="c732ab61-a91e-4e01-9030-5b73f4a8559c" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>predictor <span class="op">=</span> TabularPredictor(label<span class="op">=</span><span class="st">'count'</span>,</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                             problem_type<span class="op">=</span><span class="st">'regression'</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                             eval_metric<span class="op">=</span><span class="st">'root_mean_squared_error'</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                             learner_kwargs <span class="op">=</span> {<span class="st">'ignored_columns'</span>: [<span class="st">'casual'</span>, <span class="st">'registered'</span>]}</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>                             ).fit(train_data<span class="op">=</span>train,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>                                   time_limit<span class="op">=</span><span class="dv">600</span>,</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>                                   hyperparameters<span class="op">=</span>{<span class="st">'XGB'</span>: xgb_options,</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>                                                    <span class="st">'RF'</span>: rf_options},</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>                                   hyperparameter_tune_kwargs<span class="op">=</span>hyperparameter_tune_kwargs,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>                                   presets<span class="op">=</span><span class="st">"best_quality"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No path specified. Models will be saved in: "AutogluonModels/ag-20230529_100130/"
+Presets specified: ['best_quality']
+Warning: hyperparameter tuning is currently experimental and may cause the process to hang.
+Stack configuration (auto_stack=True): num_stack_levels=1, num_bag_folds=8, num_bag_sets=20
+Beginning AutoGluon training ... Time limit = 600s
+AutoGluon will save models to "AutogluonModels/ag-20230529_100130/"
+AutoGluon Version:  0.7.0
+Python Version:     3.10.11
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP Sat Apr 29 09:15:28 UTC 2023
+Train Data Rows:    10886
+Train Data Columns: 12
+Label Column: count
+Preprocessing data ...
+Using Feature Generators to preprocess the data ...
+Dropping user-specified ignored columns: ['casual', 'registered']
+Fitting AutoMLPipelineFeatureGenerator...
+    Available Memory:                    11713.5 MB
+    Train Data (Original)  Memory Usage: 0.57 MB (0.0% of available memory)
+    Inferring data type of each feature based on column values. Set feature_metadata_in to manually specify special dtypes of the features.
+    Stage 1 Generators:
+        Fitting AsTypeFeatureGenerator...
+            Note: Converting 2 features to boolean dtype as they only contain 2 unique values.
+    Stage 2 Generators:
+        Fitting FillNaFeatureGenerator...
+    Stage 3 Generators:
+        Fitting IdentityFeatureGenerator...
+        Fitting CategoryFeatureGenerator...
+            Fitting CategoryMemoryMinimizeFeatureGenerator...
+        Fitting DatetimeFeatureGenerator...
+    Stage 4 Generators:
+        Fitting DropUniqueFeatureGenerator...
+    Types of features in original data (raw dtype, special dtypes):
+        ('category', []) : 4 | ['season', 'holiday', 'workingday', 'weather']
+        ('datetime', []) : 1 | ['datetime']
+        ('float', [])    : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])      : 2 | ['humidity', 'hour']
+    Types of features in processed data (raw dtype, special dtypes):
+        ('category', [])             : 2 | ['season', 'weather']
+        ('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+        ('int', [])                  : 2 | ['humidity', 'hour']
+        ('int', ['bool'])            : 2 | ['holiday', 'workingday']
+        ('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+    0.1s = Fit runtime
+    10 features in original data used to generate 14 features in processed data.
+    Train Data (Processed) Memory Usage: 0.92 MB (0.0% of available memory)
+Data preprocessing and feature engineering runtime = 0.17s ...
+AutoGluon will gauge predictive performance using evaluation metric: 'root_mean_squared_error'
+    This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+    To change this, specify the eval_metric parameter of Predictor()
+AutoGluon will fit 2 stack levels (L1 to L2) ...
+Fitting 2 L1 models ...
+Hyperparameter tuning model: RandomForest_BAG_L1 ... Tuning model for up to 179.9s of the 599.81s of remaining time.
+    No hyperparameter search space specified for RandomForest_BAG_L1. Skipping HPO. Will train one model based on the provided hyperparameters.
+Fitted model: RandomForest_BAG_L1 ...
+    -38.5597     = Validation score   (-root_mean_squared_error)
+    7.09s    = Training   runtime
+    0.01s    = Validation runtime
+Hyperparameter tuning model: XGBoost_BAG_L1 ... Tuning model for up to 179.9s of the 592.68s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    Stopping HPO to satisfy time limit...
+Fitted model: XGBoost_BAG_L1/T1 ...
+    -41.3214     = Validation score   (-root_mean_squared_error)
+    169.67s  = Training   runtime
+    0.0s     = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L2 ... Training model for up to 360.0s of the 422.93s of remaining time.
+    -37.3166     = Validation score   (-root_mean_squared_error)
+    0.29s    = Training   runtime
+    0.0s     = Validation runtime
+Fitting 2 L2 models ...
+Hyperparameter tuning model: RandomForest_BAG_L2 ... Tuning model for up to 190.17s of the 422.59s of remaining time.
+    No hyperparameter search space specified for RandomForest_BAG_L2. Skipping HPO. Will train one model based on the provided hyperparameters.
+Fitted model: RandomForest_BAG_L2 ...
+    -37.9708     = Validation score   (-root_mean_squared_error)
+    17.81s   = Training   runtime
+    0.0s     = Validation runtime
+Hyperparameter tuning model: XGBoost_BAG_L2 ... Tuning model for up to 190.17s of the 404.71s of remaining time.
+    Fitting 8 child models (S1F1 - S1F8) | Fitting with ParallelLocalFoldFittingStrategy
+    Stopping HPO to satisfy time limit...
+Fitted model: XGBoost_BAG_L2/T1 ...
+    -37.2291     = Validation score   (-root_mean_squared_error)
+    162.3s   = Training   runtime
+    0.0s     = Validation runtime
+Completed 1/20 k-fold bagging repeats ...
+Fitting model: WeightedEnsemble_L3 ... Training model for up to 360.0s of the 242.33s of remaining time.
+    -37.0635     = Validation score   (-root_mean_squared_error)
+    0.15s    = Training   runtime
+    0.0s     = Validation runtime
+AutoGluon training complete, total runtime = 357.85s ... Best model: "WeightedEnsemble_L3"
+TabularPredictor saved. To load, use: predictor = TabularPredictor.load("AutogluonModels/ag-20230529_100130/")</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"3ea821fa1c8749fbba0b7ad0e9c3c39d","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"72bbc5c55c64479ba6e0a6024cda6858","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-outputid="c7e83ec1-2cae-4031-d630-2f985af0463e" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>predictor.fit_summary(show_plot<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>*** Summary of fit() ***
+Estimated performance of each model:
+                 model  score_val  pred_time_val    fit_time  pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  fit_order
+0  WeightedEnsemble_L3 -37.063491       0.012429  357.022567                0.000674           0.150200            3       True          6
+1    XGBoost_BAG_L2/T1 -37.229063       0.011516  339.061054                0.000124         162.295944            2       True          5
+2  WeightedEnsemble_L2 -37.316590       0.015952  177.058399                0.004560           0.293289            2       True          3
+3  RandomForest_BAG_L2 -37.970848       0.011631  194.576422                0.000239          17.811313            2       True          4
+4  RandomForest_BAG_L1 -38.559736       0.011225    7.091160                0.011225           7.091160            1       True          1
+5    XGBoost_BAG_L1/T1 -41.321412       0.000167  169.673949                0.000167         169.673949            1       True          2
+Number of models trained: 6
+Types of models trained:
+{'WeightedEnsembleModel', 'StackerEnsembleModel_RF', 'StackerEnsembleModel_XGBoost'}
+Bagging used: True  (with 8 folds)
+Multi-layer stack-ensembling used: True  (with 3 levels)
+Feature Metadata (Processed):
+(raw dtype, special dtypes):
+('category', [])             : 2 | ['season', 'weather']
+('float', [])                : 3 | ['temp', 'atemp', 'windspeed']
+('int', [])                  : 2 | ['humidity', 'hour']
+('int', ['bool'])            : 2 | ['holiday', 'workingday']
+('int', ['datetime_as_int']) : 5 | ['datetime', 'datetime.year', 'datetime.month', 'datetime.day', 'datetime.dayofweek']
+*** End of fit() summary ***</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.10/dist-packages/autogluon/core/utils/plots.py:138: UserWarning: AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"
+  warnings.warn('AutoGluon summary plots cannot be created because bokeh is not installed. To see plots, please do: "pip install bokeh==2.0.1"')</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="19">
+<pre><code>{'model_types': {'RandomForest_BAG_L1': 'StackerEnsembleModel_RF',
+  'XGBoost_BAG_L1/T1': 'StackerEnsembleModel_XGBoost',
+  'WeightedEnsemble_L2': 'WeightedEnsembleModel',
+  'RandomForest_BAG_L2': 'StackerEnsembleModel_RF',
+  'XGBoost_BAG_L2/T1': 'StackerEnsembleModel_XGBoost',
+  'WeightedEnsemble_L3': 'WeightedEnsembleModel'},
+ 'model_performance': {'RandomForest_BAG_L1': -38.55973590917933,
+  'XGBoost_BAG_L1/T1': -41.321411554615295,
+  'WeightedEnsemble_L2': -37.31658982258544,
+  'RandomForest_BAG_L2': -37.97084772569969,
+  'XGBoost_BAG_L2/T1': -37.22906323655433,
+  'WeightedEnsemble_L3': -37.06349085462143},
+ 'model_best': 'WeightedEnsemble_L3',
+ 'model_paths': {'RandomForest_BAG_L1': 'AutogluonModels/ag-20230529_100130/models/RandomForest_BAG_L1/',
+  'XGBoost_BAG_L1/T1': '/content/AutogluonModels/ag-20230529_100130/models/XGBoost_BAG_L1/T1/',
+  'WeightedEnsemble_L2': 'AutogluonModels/ag-20230529_100130/models/WeightedEnsemble_L2/',
+  'RandomForest_BAG_L2': 'AutogluonModels/ag-20230529_100130/models/RandomForest_BAG_L2/',
+  'XGBoost_BAG_L2/T1': '/content/AutogluonModels/ag-20230529_100130/models/XGBoost_BAG_L2/T1/',
+  'WeightedEnsemble_L3': 'AutogluonModels/ag-20230529_100130/models/WeightedEnsemble_L3/'},
+ 'model_fit_times': {'RandomForest_BAG_L1': 7.091159820556641,
+  'XGBoost_BAG_L1/T1': 169.67394948005676,
+  'WeightedEnsemble_L2': 0.2932894229888916,
+  'RandomForest_BAG_L2': 17.811312913894653,
+  'XGBoost_BAG_L2/T1': 162.29594445228577,
+  'WeightedEnsemble_L3': 0.15020036697387695},
+ 'model_pred_times': {'RandomForest_BAG_L1': 0.011225223541259766,
+  'XGBoost_BAG_L1/T1': 0.00016689300537109375,
+  'WeightedEnsemble_L2': 0.004559755325317383,
+  'RandomForest_BAG_L2': 0.00023937225341796875,
+  'XGBoost_BAG_L2/T1': 0.00012373924255371094,
+  'WeightedEnsemble_L3': 0.0006740093231201172},
+ 'num_bag_folds': 8,
+ 'max_stack_level': 3,
+ 'model_hyperparams': {'RandomForest_BAG_L1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'XGBoost_BAG_L1/T1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'WeightedEnsemble_L2': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'RandomForest_BAG_L2': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True,
+   'use_child_oof': True},
+  'XGBoost_BAG_L2/T1': {'use_orig_features': True,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True},
+  'WeightedEnsemble_L3': {'use_orig_features': False,
+   'max_base_models': 25,
+   'max_base_models_per_type': 5,
+   'save_bag_folds': True}},
+ 'leaderboard':                  model  score_val  pred_time_val    fit_time  \
+ 0  WeightedEnsemble_L3 -37.063491       0.012429  357.022567   
+ 1    XGBoost_BAG_L2/T1 -37.229063       0.011516  339.061054   
+ 2  WeightedEnsemble_L2 -37.316590       0.015952  177.058399   
+ 3  RandomForest_BAG_L2 -37.970848       0.011631  194.576422   
+ 4  RandomForest_BAG_L1 -38.559736       0.011225    7.091160   
+ 5    XGBoost_BAG_L1/T1 -41.321412       0.000167  169.673949   
+ 
+    pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  \
+ 0                0.000674           0.150200            3       True   
+ 1                0.000124         162.295944            2       True   
+ 2                0.004560           0.293289            2       True   
+ 3                0.000239          17.811313            2       True   
+ 4                0.011225           7.091160            1       True   
+ 5                0.000167         169.673949            1       True   
+ 
+    fit_order  
+ 0          6  
+ 1          5  
+ 2          3  
+ 3          4  
+ 4          1  
+ 5          2  }</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="9d6fe4a6-e2b9-4ee6-d73f-b54ef199bd5c" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>predictor.leaderboard(silent<span class="op">=</span><span class="va">True</span>).plot(kind<span class="op">=</span><span class="st">"bar"</span>, x<span class="op">=</span><span class="st">"model"</span>, y<span class="op">=</span><span class="st">"score_val"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="20">
+<pre><code>&lt;Axes: xlabel='model'&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="project_notebook_1_files/figure-html/cell-18-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<section id="create-predictions-from-test-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="create-predictions-from-test-dataset">Create predictions from test dataset</h3>
+<div class="cell" data-outputid="f4859ac1-8a0b-4717-febc-9337a9a94d96" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>predictions <span class="op">=</span> predictor.predict(test)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>predictions.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="21">
+<pre><code>0    11.740690
+1     5.859677
+2     3.744877
+3     3.270157
+4     3.282072
+Name: count, dtype: float32</code></pre>
+</div>
+</div>
+<section id="note-kaggle-will-reject-the-submission-if-we-dont-set-everything-to-be-0." class="level4">
+<h4 class="anchored" data-anchor-id="note-kaggle-will-reject-the-submission-if-we-dont-set-everything-to-be-0.">NOTE: Kaggle will reject the submission if we don’t set everything to be &gt; 0.</h4>
+<div class="cell" data-outputid="40ac5e84-9b4f-4353-c563-bc1d67f4e34d" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Describe the `predictions` series to see if there are any negative values</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>predictions.describe()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="22">
+<pre><code>count    6493.000000
+mean      191.836212
+std       173.315659
+min         2.832216
+25%        47.614754
+50%       150.358307
+75%       282.785278
+max       886.419189
+Name: count, dtype: float64</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="4698dafa-c5d7-4e8a-86b4-6d428a96cfa5" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How many negative values do we have?</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>predictions.lt(<span class="dv">0</span>).<span class="bu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<pre><code>0</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="be5ccde9-214c-4e39-d454-5d21899e889e" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set them to zero</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>predictions[predictions.lt(<span class="dv">0</span>)] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>predictions.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="24">
+<pre><code>0    11.740690
+1     5.859677
+2     3.744877
+3     3.270157
+4     3.282072
+Name: count, dtype: float32</code></pre>
+</div>
+</div>
+<div class="cell" data-outputid="0b68e845-9e6f-419f-bbdc-a7711cf1d5a5" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>predictions.lt(<span class="dv">0</span>).<span class="bu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="25">
+<pre><code>0</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="set-predictions-to-submission-dataframe-save-and-submit" class="level3">
+<h3 class="anchored" data-anchor-id="set-predictions-to-submission-dataframe-save-and-submit">Set predictions to submission dataframe, save, and submit</h3>
+<div class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>submission[<span class="st">"count"</span>] <span class="op">=</span> predictions</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>submission.to_csv(<span class="st">"submission.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-outputid="21580657-1674-4df0-cc53-35106c25fd10" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submit <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">-</span>f submission.csv <span class="op">-</span>m <span class="st">"added hyperparameters submission"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>100% 188k/188k [00:00&lt;00:00, 333kB/s]
+Successfully submitted to Bike Sharing Demand</code></pre>
+</div>
+</div>
+<section id="view-submission-via-the-command-line-or-in-the-web-browser-under-the-competitions-page---my-submissions" class="level4">
+<h4 class="anchored" data-anchor-id="view-submission-via-the-command-line-or-in-the-web-browser-under-the-competitions-page---my-submissions">View submission via the command line or in the web browser under the competition’s page - <code>My Submissions</code></h4>
+<div class="cell" data-outputid="49b51602-a6cc-4fae-fce1-412473b7b13e" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>kaggle competitions submissions <span class="op">-</span>c bike<span class="op">-</span>sharing<span class="op">-</span>demand <span class="op">|</span> tail <span class="op">-</span>n <span class="op">+</span><span class="dv">1</span> <span class="op">|</span> head <span class="op">-</span>n <span class="dv">6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fileName                     date                 description                             status    publicScore  privateScore  
+---------------------------  -------------------  --------------------------------------  --------  -----------  ------------  
+submission.csv               2023-05-29 10:07:32  added hyperparameters submission        complete  0.45699      0.45699       
+submission.csv               2023-05-27 02:17:27  gradient boosting with GridSearchCV     complete  0.38863      0.38863       
+submission_new_hpo_1.csv     2023-05-26 08:41:56  new features with increased time limit  complete  0.67834      0.67834       
+submission_new_hpo.csv       2023-05-26 08:19:14  new features with hyperparameters       complete  0.61537      0.61537       </code></pre>
+</div>
+</div>
+</section>
+<section id="a-score-of-0.45699" class="level4">
+<h4 class="anchored" data-anchor-id="a-score-of-0.45699">A score of <span class="math inline">\(0.45699\)</span></h4>
+</section>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script type="application/vnd.jupyter.widget-state+json">
+{"0559ad77fae846a99df7b6ee176baced":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"DescriptionStyleModel","state":{"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"DescriptionStyleModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"StyleView","description_width":""}},"1de0076427e34302aeecc11586b07a77":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"DescriptionStyleModel","state":{"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"DescriptionStyleModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"StyleView","description_width":""}},"1f7edae5f1984132a04d29a08223bdd4":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"1.2.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"overflow_x":null,"overflow_y":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"24ed8eb3aaad4051b9ad02aaba9cc928":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"1.2.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"overflow_x":null,"overflow_y":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"2a326bbed5924b008799ac3850989639":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"1.2.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"overflow_x":null,"overflow_y":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"2c6899a567c24c7990c3d363f04b2bbb":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"1.2.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"overflow_x":null,"overflow_y":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"3ea821fa1c8749fbba0b7ad0e9c3c39d":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"HBoxModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"HBoxModel","_view_count":null,"_view_module":"@jupyter-widgets/controls","_view_module_version":"1.5.0","_view_name":"HBoxView","box_style":"","children":["IPY_MODEL_965428c645d54e04a368f5b36819963f","IPY_MODEL_c69a2ccd9b03421e8eab1698d827bf4c","IPY_MODEL_da93f22200fc4972add21632d9c6f49d"],"layout":"IPY_MODEL_d4432c6f0d7b429da7836b3e5077aae7"}},"477f92dfea04465c9e9b688b2471ef96":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"ProgressStyleModel","state":{"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"ProgressStyleModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"StyleView","bar_color":null,"description_width":""}},"49bffd8b02664474ba40c6bb314103bf":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"1.2.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"overflow_x":null,"overflow_y":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"4d94013e1cdc44a0818090a79e093b75":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"DescriptionStyleModel","state":{"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"DescriptionStyleModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"StyleView","description_width":""}},"5ac8f7603cd14de3a3a3e4b85c20bc57":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"1.2.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"overflow_x":null,"overflow_y":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"72bbc5c55c64479ba6e0a6024cda6858":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"HBoxModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"HBoxModel","_view_count":null,"_view_module":"@jupyter-widgets/controls","_view_module_version":"1.5.0","_view_name":"HBoxView","box_style":"","children":["IPY_MODEL_abd3ad8385104b5e8126628bffa0b0bf","IPY_MODEL_7cca079b9d7c47c3a6e2d46fb8555997","IPY_MODEL_7f945b3427d04672a6e09bf0450f080e"],"layout":"IPY_MODEL_2a326bbed5924b008799ac3850989639"}},"7cca079b9d7c47c3a6e2d46fb8555997":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"FloatProgressModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"FloatProgressModel","_view_count":null,"_view_module":"@jupyter-widgets/controls","_view_module_version":"1.5.0","_view_name":"ProgressView","bar_style":"danger","description":"","description_tooltip":null,"layout":"IPY_MODEL_5ac8f7603cd14de3a3a3e4b85c20bc57","max":5,"min":0,"orientation":"horizontal","style":"IPY_MODEL_477f92dfea04465c9e9b688b2471ef96","value":0}},"7f945b3427d04672a6e09bf0450f080e":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"HTMLModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"HTMLModel","_view_count":null,"_view_module":"@jupyter-widgets/controls","_view_module_version":"1.5.0","_view_name":"HTMLView","description":"","description_tooltip":null,"layout":"IPY_MODEL_1f7edae5f1984132a04d29a08223bdd4","placeholder":"​","style":"IPY_MODEL_4d94013e1cdc44a0818090a79e093b75","value":" 0/5 [02:42&lt;?, ?it/s]"}},"87cc3c0ea2aa43fa859fd9a3cdc09868":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"1.2.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"overflow_x":null,"overflow_y":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"965428c645d54e04a368f5b36819963f":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"HTMLModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"HTMLModel","_view_count":null,"_view_module":"@jupyter-widgets/controls","_view_module_version":"1.5.0","_view_name":"HTMLView","description":"","description_tooltip":null,"layout":"IPY_MODEL_87cc3c0ea2aa43fa859fd9a3cdc09868","placeholder":"​","style":"IPY_MODEL_0559ad77fae846a99df7b6ee176baced","value":"  0%"}},"abd3ad8385104b5e8126628bffa0b0bf":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"HTMLModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"HTMLModel","_view_count":null,"_view_module":"@jupyter-widgets/controls","_view_module_version":"1.5.0","_view_name":"HTMLView","description":"","description_tooltip":null,"layout":"IPY_MODEL_49bffd8b02664474ba40c6bb314103bf","placeholder":"​","style":"IPY_MODEL_1de0076427e34302aeecc11586b07a77","value":"  0%"}},"c43d89d8a52944f99251d257d73ea728":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"DescriptionStyleModel","state":{"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"DescriptionStyleModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"StyleView","description_width":""}},"c69a2ccd9b03421e8eab1698d827bf4c":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"FloatProgressModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"FloatProgressModel","_view_count":null,"_view_module":"@jupyter-widgets/controls","_view_module_version":"1.5.0","_view_name":"ProgressView","bar_style":"danger","description":"","description_tooltip":null,"layout":"IPY_MODEL_2c6899a567c24c7990c3d363f04b2bbb","max":5,"min":0,"orientation":"horizontal","style":"IPY_MODEL_eaaebdc5b41b455c887805036a8f009f","value":0}},"d4432c6f0d7b429da7836b3e5077aae7":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"1.2.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"overflow_x":null,"overflow_y":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"da93f22200fc4972add21632d9c6f49d":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"HTMLModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"HTMLModel","_view_count":null,"_view_module":"@jupyter-widgets/controls","_view_module_version":"1.5.0","_view_name":"HTMLView","description":"","description_tooltip":null,"layout":"IPY_MODEL_24ed8eb3aaad4051b9ad02aaba9cc928","placeholder":"​","style":"IPY_MODEL_c43d89d8a52944f99251d257d73ea728","value":" 0/5 [02:49&lt;?, ?it/s]"}},"eaaebdc5b41b455c887805036a8f009f":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"ProgressStyleModel","state":{"_model_module":"@jupyter-widgets/controls","_model_module_version":"1.5.0","_model_name":"ProgressStyleModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"1.2.0","_view_name":"StyleView","bar_color":null,"description_width":""}}}
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
